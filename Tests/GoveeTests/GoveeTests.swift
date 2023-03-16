@@ -9,7 +9,42 @@ import BluetoothGATT
 
 final class GoveeTests: XCTestCase {
     
-    func testAdvertisement() throws {
+    func testBeaconAdvertisement() {
+        
+        /*
+         Parameter Length: 53 (0x35)
+         Num Reports: 0X01
+         Report 0
+             Event Type: Connectable Advertising - Scannable Advertising - Scan Response - Legacy Advertising PDUs Used - Complete -
+             Address Type: Public
+             Peer Address: A4:C1:38:2D:7A:27
+             Primary PHY: 1M
+             Secondary PHY: No Packets
+             Advertising SID: Unavailable
+             Tx Power: Unavailable
+             RSSI: -38 dBm
+             Periodic Advertising Interval: 0.000000ms (0x0)
+             Direct Address Type: Public
+             Direct Address: 00:00:00:00:00:00
+             Data Length: 27
+             Apple Manufacturing Data
+             Length: 26 (0x1A)
+             Data: 1A FF 4C 00 02 15 49 4E 54 45 4C 4C 49 5F 52 4F 43 4B 53 5F 48 57 50 72 F2 FF C2
+         */
+        
+        let advertisingData: LowEnergyAdvertisingData = [0x1A, 0xFF, 0x4C, 0x00, 0x02, 0x15, 0x49, 0x4E, 0x54, 0x45, 0x4C, 0x4C, 0x49, 0x5F, 0x52, 0x4F, 0x43, 0x4B, 0x53, 0x5F, 0x48, 0x57, 0x50, 0x72, 0xF2, 0xFF, 0xC2]
+        
+        guard let manufacturerData = advertisingData.manufacturerData,
+              let beacon = AppleBeacon(manufacturerData: manufacturerData) else {
+            XCTFail("Unable to parse")
+            return
+        }
+        
+        XCTAssertEqual(beacon.uuid, .goveeThermostat)
+        print(beacon)
+    }
+    
+    func testThermostatAdvertisement() {
         
         /*
          Mar 15 10:52:55.671  HCI Event        0x0000  A4:C1:38:2D:7A:27
@@ -44,11 +79,28 @@ final class GoveeTests: XCTestCase {
         guard let event = HCILowEnergyMetaEvent(data: data.advanced(by: 2)),
               event.subevent == .extendedAdvertisingReport,
               let reportEvent = HCILEExtendedAdvertisingReport(data: event.eventData),
-              let report = reportEvent.reports.first else {
+              let report = reportEvent.reports.first,
+              let adverisementData = LowEnergyAdvertisingData(report.responseData) else {
             XCTFail("Unable to parse")
             return
         }
         
+        XCTAssertEqual(report.address.description, "A4:C1:38:2D:7A:27")
+        XCTAssertEqual(adverisementData.localName, "GVH5072_7A27")
+        XCTAssertEqual(adverisementData.serviceUUIDs, [.bit16(0xEC88)])
+        XCTAssertEqual(adverisementData.manufacturerData?.companyIdentifier, .govee)
         
+        guard let advertisement = GoveeAdvertisement.Thermometer(adverisementData) else {
+            XCTFail("Unable to parse")
+            return
+        }
+        
+        XCTAssertEqual(advertisement.name, "GVH5072_7A27")
+        XCTAssertEqual(advertisement.manufacturingData.reserved0, 0)
+        XCTAssertEqual(advertisement.manufacturingData.reserved1, 0)
+        XCTAssertEqual(advertisement.manufacturingData.batteryLevel, 100)
+        XCTAssertEqual(advertisement.manufacturingData.encodedTemperature, 234640)
+        XCTAssertEqual(advertisement.manufacturingData.temperature, 23.464)
+        XCTAssertEqual(advertisement.manufacturingData.humidity, 64.0)
     }
 }
