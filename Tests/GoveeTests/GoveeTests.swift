@@ -106,7 +106,6 @@ final class GoveeTests: XCTestCase {
             XCTAssertEqual(advertisement.manufacturingData.humidity, 64.0)
         }
         
-        
         do {
             let manufacturerData = GAPManufacturerSpecificData(companyIdentifier: .govee, additionalData: Data([0, 3, 70, 146, 100, 0, 76, 0, 2, 21, 73, 78, 84, 69, 76, 76, 73, 95, 82, 79, 67, 75, 83, 95, 72, 87, 80, 114, 242, 255, 194]))
             
@@ -118,6 +117,19 @@ final class GoveeTests: XCTestCase {
             XCTAssertEqual(manufacturerData.batteryLevel, 100)
             XCTAssertEqual(manufacturerData.temperature, 21.4674)
             XCTAssertEqual(manufacturerData.humidity, 67.4)
+        }
+        
+        do {
+            let manufacturerData = GAPManufacturerSpecificData(companyIdentifier: .govee, additionalData: Data([0, 3, 74, 116, 100, 0, 76, 0, 2, 21, 73, 78, 84, 69, 76, 76, 73, 95, 82, 79, 67, 75, 83, 95, 72, 87, 80, 114, 242, 255, 194]))
+            
+            guard let manufacturerData = GoveeAdvertisement.Thermometer.ManufacturingData(manufacturerData) else {
+                XCTFail()
+                return
+            }
+            
+            XCTAssertEqual(manufacturerData.batteryLevel, 100)
+            XCTAssertEqual(manufacturerData.temperature, 21.5668)
+            XCTAssertEqual(manufacturerData.humidity, 66.8)
         }
     }
 }
