@@ -13,11 +13,11 @@ public extension GoveeAdvertisement {
     
     struct Thermometer: Equatable, Hashable {
         
-        public static var services: [BluetoothUUID] { [.govee] }
+        public static var services: Set<BluetoothUUID> { [.govee] }
         
         public let manufacturingData: ManufacturingData
         
-        public let name: String
+        public let name: Name
     }
 }
 
@@ -25,8 +25,10 @@ public extension GoveeAdvertisement.Thermometer {
     
     init?<T: GATT.AdvertisementData>(_ advertisementData: T) {
         guard let manufacturingData = advertisementData.manufacturerData.flatMap({ ManufacturingData($0) }),
-              let name = advertisementData.localName,
-              advertisementData.serviceUUIDs == Self.services else {
+              let rawName = advertisementData.localName,
+              let name = Name(rawValue: rawName),
+              let serviceUUIDs = advertisementData.serviceUUIDs,
+              serviceUUIDs.contains(where: { Self.services.contains($0) }) else {
             return nil
         }
         self.manufacturingData = manufacturingData
@@ -155,5 +157,45 @@ extension GoveeAdvertisement.Thermometer.ManufacturingData.EncodedTemperature: H
         withUnsafePointer(to: byteValue) {
             hasher.combine(bytes: UnsafeRawBufferPointer(start: UnsafeRawPointer($0), count: 3))
         }
+    }
+}
+
+public extension GoveeAdvertisement.Thermometer {
+    
+    struct Name: Equatable, Hashable, Codable {
+        
+        public let model: GloveeModel
+        
+        internal let macSuffix: UInt16
+    }
+}
+
+public extension GoveeAdvertisement.Thermometer.Name {
+    
+    var address: BluetoothAddress {
+        return BluetoothAddress(bigEndian: BluetoothAddress(bytes: (0xA4, 0xC1, 0x38, 0x2D, macSuffix.bigEndian.bytes.0, macSuffix.bigEndian.bytes.1)))
+    }
+}
+
+extension GoveeAdvertisement.Thermometer.Name: RawRepresentable {
+    
+    public init?(rawValue: String) {
+        let components = rawValue.split(separator: "_")
+        guard components.count == 2,
+              let model = GloveeModel.allCases.first(where: { "GV" + $0.rawValue == components[0] }),
+              let address = UInt16(components[1], radix: 16)
+            else { return nil }
+        self.init(model: model, macSuffix: address)
+    }
+    
+    public var rawValue: String {
+        return "GV" + model.rawValue + "_" + macSuffix.toHexadecimal()
+    }
+}
+
+extension GoveeAdvertisement.Thermometer.Name: CustomStringConvertible {
+    
+    public var description: String {
+        return rawValue
     }
 }
