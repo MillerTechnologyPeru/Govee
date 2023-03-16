@@ -64,7 +64,7 @@ public extension GoveeAdvertisement.Thermometer.ManufacturingData {
     
     init?(_ manufacturerSpecificData: GATT.ManufacturerSpecificData) {
         guard manufacturerSpecificData.companyIdentifier == Self.companyIdentifier,
-              manufacturerSpecificData.additionalData.count == Self.length
+              manufacturerSpecificData.additionalData.count >= Self.length
             else {
             return nil
         }

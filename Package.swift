@@ -17,21 +17,13 @@ let package = Package(
     ],
     dependencies: [
         .package(
-                url: "https://github.com/PureSwift/Bluetooth.git",
-                .upToNextMajor(from: "6.0.0")
-            ),
-            .package(
-                url: "https://github.com/PureSwift/GATT.git",
-                branch: "master"
-            ),
-            .package(
-                url: "https://github.com/PureSwift/BluetoothLinux.git",
-                branch: "master"
-            ),
-            .package(
-                url: "https://github.com/apple/swift-argument-parser",
-                from: "1.2.0"
-            ),
+            url: "https://github.com/PureSwift/Bluetooth.git",
+            .upToNextMajor(from: "6.0.0")
+        ),
+        .package(
+            url: "https://github.com/PureSwift/GATT.git",
+            branch: "master"
+        ),
     ],
     targets: [
         .target(
