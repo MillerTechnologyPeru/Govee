@@ -97,7 +97,9 @@ final class GoveeTests: XCTestCase {
                 return
             }
             
-            XCTAssertEqual(advertisement.name, "GVH5072_7A27")
+            XCTAssertEqual(advertisement.name.description, "GVH5072_7A27")
+            XCTAssertEqual(advertisement.name.model, .h5072)
+            XCTAssertEqual(advertisement.name.address, report.address)
             XCTAssertEqual(advertisement.manufacturingData.reserved0, 0)
             XCTAssertEqual(advertisement.manufacturingData.reserved1, 0)
             XCTAssertEqual(advertisement.manufacturingData.batteryLevel, 100)
