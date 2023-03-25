@@ -7,6 +7,8 @@ struct ContentView: View {
     var store: Store
     
     var body: some View {
-        NearbyDevicesView()
+        NavigationView {
+            NearbyDevicesView()
+        }
     }
 }

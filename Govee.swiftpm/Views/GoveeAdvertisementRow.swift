@@ -29,19 +29,46 @@ extension GoveeAdvertisementRow {
         
         var body: some View {
             VStack(alignment: .leading) {
-                Text(verbatim: advertisement.name.model.rawValue)
+                Text(verbatim: model)
                     .font(.title3)
-                Text(verbatim: advertisement.name.address.rawValue)
+                Text(verbatim: address)
                     .foregroundColor(.gray)
                     .font(.subheadline)
-                Text(verbatim: "Battery: \(advertisement.manufacturingData.batteryLevel) %")
+                Text("Battery: \(batteryLevel) %")
                     .font(.subheadline)
-                Text(verbatim: "Temperature: \(advertisement.manufacturingData.temperature.rounded()) C°")
+                Text("Temperature: \(temperature) C°")
                     .font(.subheadline)
-                Text(verbatim: "Humidity: \(advertisement.manufacturingData.humidity.rounded()) %")
+                Text("Humidity: \(humidity) %")
                     .font(.subheadline)
             }
         }
+    }
+}
+
+private extension GoveeAdvertisementRow.Thermometer {
+    
+    var model: String {
+        advertisement.name.model.rawValue
+    }
+    
+    var address: String {
+        advertisement.name.address.rawValue
+    }
+    
+    var batteryLevel: String {
+        advertisement.manufacturingData.batteryLevel.description
+    }
+    
+    var temperature: String {
+        format(advertisement.manufacturingData.temperature)
+    }
+    
+    var humidity: String {
+        format(advertisement.manufacturingData.humidity)
+    }
+    
+    func format(_ float: Float) -> String {
+        String(format: "%.2f", float)
     }
 }
 
