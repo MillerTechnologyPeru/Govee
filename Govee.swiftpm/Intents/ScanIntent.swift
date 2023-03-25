@@ -39,7 +39,6 @@ struct ScanIntent: AppIntent {
         let store = Store.shared
         try await store.central.wait(for: .poweredOn, warning: 2, timeout: 5)
         try await store.scan(duration: duration)
-        try await store.scan(duration: duration)
         let advertisements = store.peripherals
             .lazy
             .sorted(by: { $0.key.description < $1.key.description })
