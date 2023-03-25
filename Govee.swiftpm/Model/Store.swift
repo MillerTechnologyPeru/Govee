@@ -114,7 +114,7 @@ public final class Store: ObservableObject {
         return false
     }
     
-    private func log(_ message: String) {
+    public func log(_ message: String) {
         print(message)
     }
 }
