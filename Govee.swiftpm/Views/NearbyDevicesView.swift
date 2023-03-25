@@ -85,7 +85,7 @@ private extension NearbyDevicesView {
     }
     
     var title: LocalizedStringKey {
-        "Nearby"
+        "Govee"
     }
     
     var list: some View {

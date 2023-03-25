@@ -34,6 +34,12 @@ extension GoveeAdvertisementRow {
                 Text(verbatim: advertisement.name.address.rawValue)
                     .foregroundColor(.gray)
                     .font(.subheadline)
+                Text(verbatim: "Battery: \(advertisement.manufacturingData.batteryLevel) %")
+                    .font(.subheadline)
+                Text(verbatim: "Temperature: \(advertisement.manufacturingData.temperature.rounded()) C°")
+                    .font(.subheadline)
+                Text(verbatim: "Humidity: \(advertisement.manufacturingData.humidity.rounded()) %")
+                    .font(.subheadline)
             }
         }
     }
