@@ -36,7 +36,7 @@ public final class Store: ObservableObject {
     public static let shared = Store()
     
     private init() {
-        central.log = { print("📲 Central: " + $0) }
+        central.log = { [unowned self] in self.log("📲 Central: " + $0) }
         observeBluetoothState()
     }
     
