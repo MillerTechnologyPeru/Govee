@@ -41,7 +41,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "/Users/coleman/Developer/Govee"),
-        .package(url: "https://github.com/PureSwift/GATT.git", .branch("master"))
+        .package(url: "https://github.com/PureSwift/GATT.git", "3.0.0"..<"4.0.0")
     ],
     targets: [
         .executableTarget(
