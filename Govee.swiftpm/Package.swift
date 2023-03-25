@@ -36,7 +36,8 @@ var package = Package(
                 .bluetoothAlways(purposeString: "Bluetooth is needed to scan for nearby accessories."),
                 .outgoingNetworkConnections()
             ],
-            appCategory: .utilities
+            appCategory: .utilities,
+            additionalInfoPlistContentFilePath: "Info.plist"
         )
     ],
     dependencies: [
