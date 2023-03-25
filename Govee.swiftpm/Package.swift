@@ -7,7 +7,7 @@
 import PackageDescription
 import AppleProductTypes
 
-let package = Package(
+var package = Package(
     name: "GoveeApp",
     platforms: [
         .iOS("16.0")
@@ -40,7 +40,7 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(path: "/Users/coleman/Developer/Govee"),
+        .package(url: "https://github.com/MillerTechnologyPeru/Govee.git", "0.1.0"..<"1.0.0"),
         .package(url: "https://github.com/PureSwift/GATT.git", "3.0.0"..<"4.0.0")
     ],
     targets: [
@@ -55,3 +55,7 @@ let package = Package(
         )
     ]
 )
+
+#if os(macOS)
+package.dependencies[0] = .package(path: "../")
+#endif
