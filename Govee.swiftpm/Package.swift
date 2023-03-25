@@ -56,6 +56,8 @@ var package = Package(
     ]
 )
 
+// Xcode only settings
 #if os(macOS)
 package.dependencies[0] = .package(path: "../")
+package.platforms = [.iOS("15.0")]
 #endif
