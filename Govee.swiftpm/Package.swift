@@ -19,7 +19,7 @@ var package = Package(
             bundleIdentifier: "com.colemancda.Govee",
             teamIdentifier: "4W79SG34MW",
             displayVersion: "1.0",
-            bundleVersion: "1",
+            bundleVersion: "2",
             appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.blue),
             supportedDeviceFamilies: [
