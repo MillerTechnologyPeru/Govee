@@ -70,7 +70,8 @@ public final class Store: ObservableObject {
         self.peripherals.removeAll(keepingCapacity: true)
         stopScanning()
         isScanning = true
-        let scanStream = try await central.scan(
+        let scanStream = central.scan(
+            with: [.govee, .goveeThermostat],
             filterDuplicates: filterDuplicates
         )
         self.scanStream = scanStream
