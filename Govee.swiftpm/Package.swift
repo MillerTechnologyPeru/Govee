@@ -10,7 +10,7 @@ import AppleProductTypes
 var package = Package(
     name: "GoveeApp",
     platforms: [
-        .iOS("16.0")
+        .iOS("15.2")
     ],
     products: [
         .iOSApplication(
