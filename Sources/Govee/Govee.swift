@@ -9,10 +9,10 @@ public enum GoveeAdvertisement: Equatable, Hashable {
 
 extension GoveeAdvertisement: Identifiable {
     
-    public var id: BluetoothAddress {
+    public var id: String {
         switch self {
         case .thermometer(let thermometer):
-            return thermometer.name.address
+            return thermometer.name.description
         }
     }
 }

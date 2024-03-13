@@ -170,13 +170,6 @@ public extension GoveeAdvertisement.Thermometer {
     }
 }
 
-public extension GoveeAdvertisement.Thermometer.Name {
-    
-    var address: BluetoothAddress {
-        return BluetoothAddress(bigEndian: BluetoothAddress(bytes: (0xA4, 0xC1, 0x38, 0x2D, macSuffix.bigEndian.bytes.0, macSuffix.bigEndian.bytes.1)))
-    }
-}
-
 extension GoveeAdvertisement.Thermometer.Name: RawRepresentable {
     
     public init?(rawValue: String) {
