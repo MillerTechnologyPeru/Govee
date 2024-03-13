@@ -15,6 +15,10 @@ public enum GoveeModel: String, Codable, CaseIterable, Sendable {
     
     case h5074 = "H5074"
     case h5075 = "H5075"
+    
+    /// Govee Smart Plug Pro with Energy Monitoring
+    case h5086 = "H5086"
+    
     case h5101 = "H5101"
     case h5102 = "H5102"
     case h5177 = "H5177"
@@ -35,8 +39,20 @@ public enum GoveeModel: String, Codable, CaseIterable, Sendable {
     /// Govee Smart Space Heater Lite
     case h7135 = "H7135"
     
+    /// Govee Smart Essential Oil Diffuser (with white noise)
+    case h7161 = "H7161"
+    
+    /// Govee Smart Essential Oil Diffuser (without white noise)
+    case h7162 = "H7162"
+    
     /// Govee Smart Gooseneck Kettle
     case h7170 = "H7170"
+    
+    /// Govee Smart Electric Kettle
+    case h7171 = "H7171"
+    
+    /// Govee Portable Countertop Ice Maker
+    case h7172 = "H7172"
     
     /// Govee Smart Electric Kettle Lite
     case h7173 = "H7173"
