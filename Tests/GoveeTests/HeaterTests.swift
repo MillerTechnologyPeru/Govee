@@ -79,4 +79,31 @@ final class HeaterTests: XCTestCase {
         XCTAssertEqual(scanResponse.manufacturerData?.companyIdentifier, 0x8802)
         XCTAssertEqual(scanResponse.manufacturerData?.additionalData.count, 6)
     }
+    
+    func testManufacturerData() {
+        
+        // On
+        do {
+            let scanResponse: LowEnergyAdvertisingData = [0x03, 0x19, 0x00, 0x00, 0x09, 0xFF, 0x02, 0x88, 0xEC, 0x00, 0x01, 0x01, 0x01, 0x00]
+            guard let manufacturerData = scanResponse.manufacturerData,
+                  let heaterManufacturerData = GoveeAccessory.Heater.ManufacturerData(manufacturerData) else {
+                XCTFail()
+                return
+            }
+            
+            XCTAssert(heaterManufacturerData.isActive)
+        }
+        
+        // Off
+        do {
+            let scanResponse: LowEnergyAdvertisingData = [0x03, 0x19, 0x00, 0x00, 0x09, 0xFF, 0x02, 0x88, 0xEC, 0x00, 0x01, 0x01, 0x00, 0x00]
+            guard let manufacturerData = scanResponse.manufacturerData,
+                  let heaterManufacturerData = GoveeAccessory.Heater.ManufacturerData(manufacturerData) else {
+                XCTFail()
+                return
+            }
+            
+            XCTAssertFalse(heaterManufacturerData.isActive)
+        }
+    }
 }
