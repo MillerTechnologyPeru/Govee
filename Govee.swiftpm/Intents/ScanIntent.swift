@@ -57,7 +57,7 @@ struct ScanIntent: AppIntent {
 @MainActor
 private extension ScanIntent {
     
-    func view(for results: [GoveeAdvertisement]) -> some View {
+    func view(for results: [GoveeAccessory]) -> some View {
         HStack(alignment: .top, spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
                 if results.isEmpty {
@@ -79,7 +79,7 @@ private extension ScanIntent {
         }
     }
     
-    func view(for advertisement: GoveeAdvertisement) -> some View {
+    func view(for advertisement: GoveeAccessory) -> some View {
         GoveeAdvertisementRow(advertisement: advertisement)
     }
 }

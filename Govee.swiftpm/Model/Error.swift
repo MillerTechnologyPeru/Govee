@@ -13,5 +13,5 @@ public enum GoveeAppError: Error {
     
     case bluetoothUnavailable
     
-    case unknown(GoveeAdvertisement.ID)
+    case unknown(GoveeAccessory.ID)
 }

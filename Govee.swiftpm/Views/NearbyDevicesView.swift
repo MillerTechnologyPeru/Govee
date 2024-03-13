@@ -49,7 +49,7 @@ private extension NearbyDevicesView {
         case stopScan
     }
     
-    var items: [GoveeAdvertisement] {
+    var items: [GoveeAccessory] {
         store.peripherals
             .lazy
             .sorted(by: { $0.key.description < $1.key.description })

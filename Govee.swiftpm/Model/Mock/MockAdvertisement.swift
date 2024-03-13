@@ -81,9 +81,9 @@ public extension MockAdvertisementData {
     )
 }
 
-public extension GoveeAdvertisement.Thermometer {
+public extension GoveeAccessory.Thermometer {
     
-    static var mock: GoveeAdvertisement.Thermometer {
+    static var mock: GoveeAccessory.Thermometer {
         return .init(MockAdvertisementData.goveeThermometer)!
     }
 }

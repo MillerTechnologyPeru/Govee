@@ -25,7 +25,7 @@ public final class Store: ObservableObject {
     public private(set) var isScanning = false
     
     @Published
-    public private(set) var peripherals = [NativeCentral.Peripheral: GoveeAdvertisement]()
+    public private(set) var peripherals = [NativeCentral.Peripheral: GoveeAccessory]()
     
     lazy var central = NativeCentral()
     
@@ -43,7 +43,7 @@ public final class Store: ObservableObject {
     // MARK: - Methods
     
     /// The Bluetooth LE peripheral for the speciifed device identifier..
-    subscript (peripheral id: GoveeAdvertisement.ID) -> NativeCentral.Peripheral? {
+    subscript (peripheral id: GoveeAccessory.ID) -> NativeCentral.Peripheral? {
         return peripherals.first(where: { $0.value.id == id })?.key
     }
     
@@ -105,7 +105,7 @@ public final class Store: ObservableObject {
     }
     
     private func found(_ scanData: ScanData<NativeCentral.Peripheral, NativeCentral.Advertisement>) -> Bool {
-        guard let advertisement = GoveeAdvertisement(scanData.advertisementData) else {
+        guard let advertisement = GoveeAccessory(scanData.advertisementData) else {
             return false
         }
         let oldValue = self.peripherals[scanData.peripheral]
