@@ -8,7 +8,7 @@
 import Foundation
 
 /// Govee Model
-public enum GoveeModel: String, Codable, CaseIterable {
+public enum GoveeModel: String, Codable, CaseIterable, Sendable {
     
     /// Govee Thermometer Hygrometer
     case h5072 = "H5072"
