@@ -94,4 +94,6 @@ public enum KettleHeatingState: UInt8, Codable, Sendable, CaseIterable {
     case heating = 0x01
     
     case keepingWarm = 0x02
+    
+    case finishedBoiling = 0x04
 }
