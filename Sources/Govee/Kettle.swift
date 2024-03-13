@@ -53,9 +53,8 @@ public extension GoveeAccessory.Kettle {
         internal let reserved0: UInt8
         internal let reserved1: UInt8
         internal let reserved2: UInt8
-        internal let reserved3: UInt8
+        public let isActive: Bool
         internal let reserved4: UInt8
-        //internal let reserved5: UInt8
         public let state: KettleHeatingState
         internal let reserved6: UInt8
         internal let reserved7: UInt8
@@ -77,7 +76,7 @@ public extension GoveeAccessory.Kettle.ManufacturerData {
         self.reserved0 = data[1]
         self.reserved1 = data[2]
         self.reserved2 = data[3]
-        self.reserved3 = data[4]
+        self.isActive = data[4] != 0x00
         self.reserved4 = data[5]
         self.state = state
         self.reserved6 = data[7]
