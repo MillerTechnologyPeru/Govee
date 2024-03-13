@@ -58,6 +58,7 @@ final class KettleTests: XCTestCase {
                 return
             }
             
+            XCTAssertFalse(advertisement.manufacturerData.isActive)
             XCTAssertEqual(advertisement.manufacturerData.state, .idle)
         }
         
@@ -76,6 +77,7 @@ final class KettleTests: XCTestCase {
                 return
             }
             
+            XCTAssert(advertisement.manufacturerData.isActive)
             XCTAssertEqual(advertisement.manufacturerData.state, .heating)
         }
         
@@ -94,6 +96,7 @@ final class KettleTests: XCTestCase {
                 return
             }
             
+            XCTAssert(advertisement.manufacturerData.isActive)
             XCTAssertEqual(advertisement.manufacturerData.state, .heating)
         }
         
@@ -112,6 +115,7 @@ final class KettleTests: XCTestCase {
                 return
             }
             
+            XCTAssert(advertisement.manufacturerData.isActive)
             XCTAssertEqual(advertisement.manufacturerData.state, .heating)
         }
         
@@ -130,6 +134,7 @@ final class KettleTests: XCTestCase {
                 return
             }
             
+            XCTAssert(advertisement.manufacturerData.isActive)
             XCTAssertEqual(advertisement.manufacturerData.state, .keepingWarm)
         }
         
@@ -148,6 +153,7 @@ final class KettleTests: XCTestCase {
                 return
             }
             
+            XCTAssert(advertisement.manufacturerData.isActive)
             XCTAssertEqual(advertisement.manufacturerData.state, .finishedBoiling)
         }
         
