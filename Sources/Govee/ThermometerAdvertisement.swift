@@ -164,7 +164,7 @@ public extension GoveeAdvertisement.Thermometer {
     
     struct Name: Equatable, Hashable, Codable {
         
-        public let model: GloveeModel
+        public let model: GoveeModel
         
         internal let macSuffix: UInt16
     }
@@ -175,7 +175,7 @@ extension GoveeAdvertisement.Thermometer.Name: RawRepresentable {
     public init?(rawValue: String) {
         let components = rawValue.split(separator: "_")
         guard components.count == 2,
-              let model = GloveeModel.allCases.first(where: { "GV" + $0.rawValue == components[0] }),
+              let model = GoveeModel.allCases.first(where: { "GV" + $0.rawValue == components[0] }),
               let address = UInt16(components[1], radix: 16)
             else { return nil }
         self.init(model: model, macSuffix: address)

@@ -7,10 +7,12 @@
 
 import Foundation
 
-/// Glovee Model
-public enum GloveeModel: String, Codable, CaseIterable {
+/// Govee Model
+public enum GoveeModel: String, Codable, CaseIterable {
     
+    /// Govee Thermometer Hygrometer
     case h5072 = "H5072"
+    
     case h5074 = "H5074"
     case h5075 = "H5075"
     case h5101 = "H5101"
@@ -23,5 +25,25 @@ public enum GloveeModel: String, Codable, CaseIterable {
     case h5184 = "H5184"
     case h5185 = "H5185"
     case h5198 = "H5198"
+    
+    /// Govee Smart Space Heater
+    case h7130 = "H7130"
+    
+    /// Govee Smart Space Heater
+    case h7131 = "H7131"
+    
+    /// Govee Smart Space Heater Lite
+    case h7135 = "H7135"
+    
+    /// Govee Smart Gooseneck Kettle
+    case h7170 = "H7170"
+    
+    /// Govee Smart Electric Kettle Lite
+    case h7173 = "H7173"
+    
+    /// Govee Smart Electric Gooseneck Kettle
+    case h7175 = "H7175"
+    
+    /// Govee Smart Rice Cooker Pro
+    case h7180 = "H7180"
 }
-
