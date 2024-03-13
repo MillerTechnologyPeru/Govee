@@ -15,7 +15,7 @@ public extension GoveeAccessory {
         
         public static var type: GoveeAccessoryType { .kettle }
         
-        public let manufacturingData: ManufacturingData
+        public let manufacturerData: ManufacturerData
         
         public let name: GoveeAdvertisementName
         
@@ -32,19 +32,21 @@ public extension GoveeAccessory {
 public extension GoveeAccessory.Kettle {
     
     init?<T: GATT.AdvertisementData>(_ advertisementData: T) {
-        guard let manufacturingData = advertisementData.manufacturerData.flatMap({ ManufacturingData($0) }),
+        guard let manufacturerData = advertisementData.manufacturerData.flatMap({ ManufacturerData($0) }),
               let rawName = advertisementData.localName,
               let name = GoveeAdvertisementName(rawValue: rawName) else {
             return nil
         }
-        self.manufacturingData = manufacturingData
+        self.manufacturerData = manufacturerData
         self.name = name
     }
 }
 
 public extension GoveeAccessory.Kettle {
     
-    struct ManufacturingData: Equatable, Hashable, Sendable {
+    struct ManufacturerData: Equatable, Hashable, Sendable {
+        
+        public static var companyIdentifier: CompanyIdentifier { .goveeKettle }
                 
         internal static var length: Int { 11 }
         
@@ -54,10 +56,11 @@ public extension GoveeAccessory.Kettle {
     }
 }
 
-public extension GoveeAccessory.Kettle.ManufacturingData {
+public extension GoveeAccessory.Kettle.ManufacturerData {
     
     init?(_ manufacturerSpecificData: GATT.ManufacturerSpecificData) {
-        guard manufacturerSpecificData.additionalData.count >= Self.length
+        guard manufacturerSpecificData.additionalData.count >= Self.length,
+            manufacturerSpecificData.companyIdentifier == Self.companyIdentifier
             else {
             return nil
         }
