@@ -6,6 +6,7 @@ import GATT
 public enum GoveeAccessory: Equatable, Hashable, Sendable {
     
     case thermometer(Thermometer)
+    case heater(Heater)
     case kettle(Kettle)
 }
 
@@ -14,6 +15,8 @@ public extension GoveeAccessory {
     var model: GoveeModel {
         switch self {
         case .thermometer(let value):
+            return value.model
+        case .heater(let value):
             return value.model
         case .kettle(let value):
             return value.model
@@ -24,6 +27,8 @@ public extension GoveeAccessory {
         switch self {
         case .thermometer:
             return .thermometer
+        case .heater:
+            return .heater
         case .kettle:
             return .kettle
         }
@@ -38,6 +43,8 @@ extension GoveeAccessory: Identifiable {
         switch self {
         case .thermometer(let value):
             return value.id
+        case .heater(let value):
+            return value.id
         case .kettle(let value):
             return value.id
         }
@@ -51,6 +58,8 @@ public extension GoveeAccessory {
     init?<T: GATT.AdvertisementData>(_ advertisementData: T) {
         if let thermometer = Thermometer(advertisementData) {
             self = .thermometer(thermometer)
+        } else if let heater = Heater(advertisementData) {
+            self = .heater(heater)
         } else if let kettle = Kettle(advertisementData) {
             self = .kettle(kettle)
         } else {
@@ -79,7 +88,7 @@ public protocol GoveeAccessoryProtocol: Identifiable {
 public enum GoveeAccessoryType: Equatable, Hashable, Sendable {
     
     case thermometer
-    case kettle
     case heater
+    case kettle
     case riceCooker
 }
