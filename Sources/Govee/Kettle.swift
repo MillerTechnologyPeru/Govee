@@ -55,7 +55,8 @@ public extension GoveeAccessory.Kettle {
         internal let reserved2: UInt8
         internal let reserved3: UInt8
         internal let reserved4: UInt8
-        internal let reserved5: UInt8
+        //internal let reserved5: UInt8
+        public let state: KettleHeatingState
         internal let reserved6: UInt8
         internal let reserved7: UInt8
         internal let reserved8: UInt8
@@ -66,21 +67,31 @@ public extension GoveeAccessory.Kettle {
 public extension GoveeAccessory.Kettle.ManufacturerData {
     
     init?(_ manufacturerSpecificData: GATT.ManufacturerSpecificData) {
-        guard manufacturerSpecificData.additionalData.count == Self.length,
-            manufacturerSpecificData.companyIdentifier == Self.companyIdentifier,
-            manufacturerSpecificData.additionalData.first == 0xEC else {
+        let data = manufacturerSpecificData.additionalData
+        guard manufacturerSpecificData.companyIdentifier == Self.companyIdentifier,
+              data.count == Self.length,
+              data.first == 0xEC,
+              let state = KettleHeatingState(rawValue: data[6]) else {
             return nil
         }
-        let data = manufacturerSpecificData.additionalData
         self.reserved0 = data[1]
         self.reserved1 = data[2]
         self.reserved2 = data[3]
         self.reserved3 = data[4]
         self.reserved4 = data[5]
-        self.reserved5 = data[6]
+        self.state = state
         self.reserved6 = data[7]
         self.reserved7 = data[8]
         self.reserved8 = data[9]
         self.reserved9 = data[10]
     }
+}
+
+public enum KettleHeatingState: UInt8, Codable, Sendable, CaseIterable {
+    
+    case idle = 0x00
+    
+    case heating = 0x01
+    
+    case keepingWarm = 0x02
 }
