@@ -44,7 +44,7 @@ struct ScanIntent: AppIntent {
             .sorted(by: { $0.key.description < $1.key.description })
             .map { $0.value }
         let results = advertisements.map {
-            $0.id.rawValue
+            $0.id
         }
         return .result(
             value: results,
