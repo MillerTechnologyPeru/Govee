@@ -19,10 +19,12 @@ public struct GoveeAdvertisementName: RawRepresentable, Equatable, Hashable, Cod
     public init?(rawValue: String) {
         var string = rawValue
         // parse model and mac bytes
-        guard string.hasPrefix("GV") else {
-            return nil
+        if string.hasPrefix("GV") {
+            string.removeFirst("GV".count)
+        } else if string.hasPrefix("ihoment_") {
+            string.removeFirst("ihoment_".count)
         }
-        string.removeFirst(2)
+        
         guard let model = GoveeModel.allCases.first(where: { string.hasPrefix($0.rawValue) }) else {
             return nil
         }
