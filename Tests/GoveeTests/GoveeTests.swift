@@ -14,7 +14,8 @@ final class GoveeTests: XCTestCase {
         let values: [GoveeAdvertisementName] = [
             GoveeAdvertisementName(rawValue: "GVH5072_CF9C", model: .h5072, macSuffix: 0xCF9C),
             GoveeAdvertisementName(rawValue: "GVH5072_7A27", model: .h5072, macSuffix: 0x7A27),
-            GoveeAdvertisementName(rawValue: "GVH71732ADB", model: .h7173, macSuffix: 0x2ADB)
+            GoveeAdvertisementName(rawValue: "GVH71732ADB", model: .h7173, macSuffix: 0x2ADB),
+            GoveeAdvertisementName(rawValue: "ihoment_H7135_9F73", model: .h7135, macSuffix: 0x9F73),
         ]
         
         for name in values {
