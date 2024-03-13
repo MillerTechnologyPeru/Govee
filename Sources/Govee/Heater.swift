@@ -50,20 +50,27 @@ public extension GoveeAccessory.Heater {
                 
         internal static var length: Int { 6 }
         
-        //internal let reserved0: UInt8
-        
-        //internal let reserved1: UInt8
+        internal let reserved0: UInt8
+        internal let reserved1: UInt8
+        internal let reserved2: UInt8
+        internal let reserved3: UInt8
+        internal let reserved4: UInt8
     }
 }
 
 public extension GoveeAccessory.Heater.ManufacturerData {
     
     init?(_ manufacturerSpecificData: GATT.ManufacturerSpecificData) {
-        guard manufacturerSpecificData.additionalData.count >= Self.length,
-            manufacturerSpecificData.companyIdentifier == Self.companyIdentifier
-            else {
+        guard manufacturerSpecificData.additionalData.count == Self.length,
+            manufacturerSpecificData.companyIdentifier == Self.companyIdentifier,
+            manufacturerSpecificData.additionalData.first == 0xEC else {
             return nil
         }
         let data = manufacturerSpecificData.additionalData
+        self.reserved0 = data[1]
+        self.reserved1 = data[2]
+        self.reserved2 = data[3]
+        self.reserved3 = data[4]
+        self.reserved4 = data[5]
     }
 }
