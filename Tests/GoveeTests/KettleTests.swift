@@ -43,6 +43,8 @@ final class KettleTests: XCTestCase {
                      Data: 02 01 05 0C 09 47 56 48 37 31 37 33 32 41 44 42 0E FF 03 88 EC 00 01 01 00 00 00 00 00 00 00
 
              */
+            
+            // Idle
             let adverisementData: LowEnergyAdvertisingData = [0x02, 0x01, 0x05, 0x0C, 0x09, 0x47, 0x56, 0x48, 0x37, 0x31, 0x37, 0x33, 0x32, 0x41, 0x44, 0x42, 0x0E, 0xFF, 0x03, 0x88, 0xEC, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
             
             XCTAssertEqual(adverisementData.localName, "GVH71732ADB")
@@ -50,9 +52,16 @@ final class KettleTests: XCTestCase {
             XCTAssertNil(adverisementData.serviceData)
             XCTAssertEqual(adverisementData.manufacturerData?.companyIdentifier, 0x8803)
             XCTAssertEqual(adverisementData.manufacturerData?.additionalData.count, 11)
+            
+            guard let advertisement = GoveeAccessory.Kettle(adverisementData) else {
+                XCTFail()
+                return
+            }
+            
+            XCTAssertEqual(advertisement.manufacturerData.state, .idle)
         }
         
-        // While boiling
+        // While boiling, Coffee
         do {
             let adverisementData: LowEnergyAdvertisingData = [0x02, 0x01, 0x05, 0x0C, 0x09, 0x47, 0x56, 0x48, 0x37, 0x31, 0x37, 0x33, 0x32, 0x41, 0x44, 0x42, 0x0E, 0xFF, 0x03, 0x88, 0xEC, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
             
@@ -61,6 +70,67 @@ final class KettleTests: XCTestCase {
             XCTAssertNil(adverisementData.serviceData)
             XCTAssertEqual(adverisementData.manufacturerData?.companyIdentifier, 0x8803)
             XCTAssertEqual(adverisementData.manufacturerData?.additionalData.count, 11)
+            
+            guard let advertisement = GoveeAccessory.Kettle(adverisementData) else {
+                XCTFail()
+                return
+            }
+            
+            XCTAssertEqual(advertisement.manufacturerData.state, .heating)
+        }
+        
+        // Boiling, DIY
+        do {
+            let adverisementData: LowEnergyAdvertisingData = [02, 0x01, 0x05, 0x0C, 0x09, 0x47, 0x56, 0x48, 0x37, 0x31, 0x37, 0x33, 0x32, 0x41, 0x44, 0x42, 0x0E, 0xFF, 0x03, 0x88, 0xEC, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
+            
+            XCTAssertEqual(adverisementData.localName, "GVH71732ADB")
+            XCTAssertNil(adverisementData.serviceUUIDs)
+            XCTAssertNil(adverisementData.serviceData)
+            XCTAssertEqual(adverisementData.manufacturerData?.companyIdentifier, 0x8803)
+            XCTAssertEqual(adverisementData.manufacturerData?.additionalData.count, 11)
+            
+            guard let advertisement = GoveeAccessory.Kettle(adverisementData) else {
+                XCTFail()
+                return
+            }
+            
+            XCTAssertEqual(advertisement.manufacturerData.state, .heating)
+        }
+        
+        // Keep warm, Coffee (heating)
+        do {
+            let adverisementData: LowEnergyAdvertisingData = [0x02, 0x01, 0x05, 0x0C, 0x09, 0x47, 0x56, 0x48, 0x37, 0x31, 0x37, 0x33, 0x32, 0x41, 0x44, 0x42, 0x0E, 0xFF, 0x03, 0x88, 0xEC, 0x00, 0x01, 0x01, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
+            
+            XCTAssertEqual(adverisementData.localName, "GVH71732ADB")
+            XCTAssertNil(adverisementData.serviceUUIDs)
+            XCTAssertNil(adverisementData.serviceData)
+            XCTAssertEqual(adverisementData.manufacturerData?.companyIdentifier, 0x8803)
+            XCTAssertEqual(adverisementData.manufacturerData?.additionalData.count, 11)
+            
+            guard let advertisement = GoveeAccessory.Kettle(adverisementData) else {
+                XCTFail()
+                return
+            }
+            
+            XCTAssertEqual(advertisement.manufacturerData.state, .heating)
+        }
+        
+        // Keep warm, Coffee (finished heating)
+        do {
+            let adverisementData: LowEnergyAdvertisingData = [0x02, 0x01, 0x05, 0x0C, 0x09, 0x47, 0x56, 0x48, 0x37, 0x31, 0x37, 0x33, 0x32, 0x41, 0x44, 0x42, 0x0E, 0xFF, 0x03, 0x88, 0xEC, 0x00, 0x01, 0x01, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00]
+            
+            XCTAssertEqual(adverisementData.localName, "GVH71732ADB")
+            XCTAssertNil(adverisementData.serviceUUIDs)
+            XCTAssertNil(adverisementData.serviceData)
+            XCTAssertEqual(adverisementData.manufacturerData?.companyIdentifier, 0x8803)
+            XCTAssertEqual(adverisementData.manufacturerData?.additionalData.count, 11)
+            
+            guard let advertisement = GoveeAccessory.Kettle(adverisementData) else {
+                XCTFail()
+                return
+            }
+            
+            XCTAssertEqual(advertisement.manufacturerData.state, .keepingWarm)
         }
     }
 }
