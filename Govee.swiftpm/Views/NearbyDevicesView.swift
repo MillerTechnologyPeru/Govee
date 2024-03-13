@@ -12,7 +12,7 @@ import Govee
 struct NearbyDevicesView: View {
     
     @EnvironmentObject
-    var store: Store
+    var store: AccessoryManager
     
     @State
     private var scanTask: Task<Void, Never>?

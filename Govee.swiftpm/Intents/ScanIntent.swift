@@ -36,7 +36,7 @@ struct ScanIntent: AppIntent {
     
     @MainActor
     func perform() async throws -> some IntentResult {
-        let store = Store.shared
+        let store = AccessoryManager.shared
         try await store.central.wait(for: .poweredOn, warning: 2, timeout: 5)
         try await store.scan(duration: duration)
         let advertisements = store.peripherals
