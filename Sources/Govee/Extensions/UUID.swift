@@ -27,11 +27,3 @@ public extension BluetoothUUID {
         BluetoothUUID(uuid: .goveeThermostat)
     }
 }
-
-public extension CompanyIdentifier {
-    
-    /// Govee (Shenzhen Intellirocks Tech. Co., Ltd.)
-    static var govee: CompanyIdentifier {
-        0xEC88
-    }
-}
