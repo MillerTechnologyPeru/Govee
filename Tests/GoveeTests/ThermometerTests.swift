@@ -144,18 +144,18 @@ final class ThermometerTests: XCTestCase {
             
             XCTAssertEqual(advertisement.name.description, "GVH5072_7A27")
             XCTAssertEqual(advertisement.name.model, .h5072)
-            XCTAssertEqual(advertisement.manufacturingData.reserved0, 0)
-            XCTAssertEqual(advertisement.manufacturingData.reserved1, 0)
-            XCTAssertEqual(advertisement.manufacturingData.batteryLevel, 100)
-            XCTAssertEqual(advertisement.manufacturingData.encodedTemperature, 234640)
-            XCTAssertEqual(advertisement.manufacturingData.temperature, 23.464)
-            XCTAssertEqual(advertisement.manufacturingData.humidity, 64.0)
+            XCTAssertEqual(advertisement.manufacturerData.reserved0, 0)
+            XCTAssertEqual(advertisement.manufacturerData.reserved1, 0)
+            XCTAssertEqual(advertisement.manufacturerData.batteryLevel, 100)
+            XCTAssertEqual(advertisement.manufacturerData.encodedTemperature, 234640)
+            XCTAssertEqual(advertisement.manufacturerData.temperature, 23.464)
+            XCTAssertEqual(advertisement.manufacturerData.humidity, 64.0)
         }
         
         do {
             let manufacturerData = GAPManufacturerSpecificData(companyIdentifier: .govee, additionalData: Data([0, 3, 70, 146, 100, 0, 76, 0, 2, 21, 73, 78, 84, 69, 76, 76, 73, 95, 82, 79, 67, 75, 83, 95, 72, 87, 80, 114, 242, 255, 194]))
             
-            guard let manufacturerData = GoveeAccessory.Thermometer.ManufacturingData(manufacturerData) else {
+            guard let manufacturerData = GoveeAccessory.Thermometer.ManufacturerData(manufacturerData) else {
                 XCTFail()
                 return
             }
@@ -168,7 +168,7 @@ final class ThermometerTests: XCTestCase {
         do {
             let manufacturerData = GAPManufacturerSpecificData(companyIdentifier: .govee, additionalData: Data([0, 3, 74, 116, 100, 0, 76, 0, 2, 21, 73, 78, 84, 69, 76, 76, 73, 95, 82, 79, 67, 75, 83, 95, 72, 87, 80, 114, 242, 255, 194]))
             
-            guard let manufacturerData = GoveeAccessory.Thermometer.ManufacturingData(manufacturerData) else {
+            guard let manufacturerData = GoveeAccessory.Thermometer.ManufacturerData(manufacturerData) else {
                 XCTFail()
                 return
             }
@@ -216,12 +216,12 @@ final class ThermometerTests: XCTestCase {
             
             XCTAssertEqual(advertisement.name.description, "GVH5072_CF9C")
             XCTAssertEqual(advertisement.name.model, .h5072)
-            XCTAssertEqual(advertisement.manufacturingData.reserved0, 0)
-            XCTAssertEqual(advertisement.manufacturingData.reserved1, 0)
-            XCTAssertEqual(advertisement.manufacturingData.batteryLevel, 100)
-            XCTAssertEqual(advertisement.manufacturingData.encodedTemperature, 203432)
-            XCTAssertEqual(advertisement.manufacturingData.temperature, 20.3432)
-            XCTAssertEqual(advertisement.manufacturingData.humidity, 43.2)
+            XCTAssertEqual(advertisement.manufacturerData.reserved0, 0)
+            XCTAssertEqual(advertisement.manufacturerData.reserved1, 0)
+            XCTAssertEqual(advertisement.manufacturerData.batteryLevel, 100)
+            XCTAssertEqual(advertisement.manufacturerData.encodedTemperature, 203432)
+            XCTAssertEqual(advertisement.manufacturerData.temperature, 20.3432)
+            XCTAssertEqual(advertisement.manufacturerData.humidity, 43.2)
         }
     }
 }
