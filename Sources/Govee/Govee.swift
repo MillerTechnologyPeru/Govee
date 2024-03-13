@@ -9,6 +9,27 @@ public enum GoveeAccessory: Equatable, Hashable, Sendable {
     case kettle(Kettle)
 }
 
+public extension GoveeAccessory {
+    
+    var model: GoveeModel {
+        switch self {
+        case .thermometer(let value):
+            return value.model
+        case .kettle(let value):
+            return value.model
+        }
+    }
+    
+    var type: GoveeAccessoryType {
+        switch self {
+        case .thermometer:
+            return .thermometer
+        case .kettle:
+            return .kettle
+        }
+    }
+}
+
 // MARK: - Identifiable
 
 extension GoveeAccessory: Identifiable {
@@ -30,6 +51,8 @@ public extension GoveeAccessory {
     init?<T: GATT.AdvertisementData>(_ advertisementData: T) {
         if let thermometer = Thermometer(advertisementData) {
             self = .thermometer(thermometer)
+        } else if let kettle = Kettle(advertisementData) {
+            self = .kettle(kettle)
         } else {
             return nil
         }
