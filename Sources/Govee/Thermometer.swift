@@ -17,7 +17,7 @@ public extension GoveeAccessory {
         
         public static var services: Set<BluetoothUUID> { [.govee] }
         
-        public let manufacturingData: ManufacturingData
+        public let manufacturerData: ManufacturerData
         
         public let name: GoveeAdvertisementName
         
@@ -34,21 +34,21 @@ public extension GoveeAccessory {
 public extension GoveeAccessory.Thermometer {
     
     init?<T: GATT.AdvertisementData>(_ advertisementData: T) {
-        guard let manufacturingData = advertisementData.manufacturerData.flatMap({ ManufacturingData($0) }),
+        guard let manufacturerData = advertisementData.manufacturerData.flatMap({ ManufacturerData($0) }),
               let rawName = advertisementData.localName,
               let name = GoveeAdvertisementName(rawValue: rawName),
               let serviceUUIDs = advertisementData.serviceUUIDs,
               serviceUUIDs.contains(where: { Self.services.contains($0) }) else {
             return nil
         }
-        self.manufacturingData = manufacturingData
+        self.manufacturerData = manufacturerData
         self.name = name
     }
 }
 
 public extension GoveeAccessory.Thermometer {
     
-    struct ManufacturingData: Equatable, Hashable, Sendable {
+    struct ManufacturerData: Equatable, Hashable, Sendable {
         
         public static var companyIdentifier: CompanyIdentifier { .govee }
         
@@ -72,7 +72,7 @@ public extension GoveeAccessory.Thermometer {
     }
 }
 
-public extension GoveeAccessory.Thermometer.ManufacturingData {
+public extension GoveeAccessory.Thermometer.ManufacturerData {
     
     init?(_ manufacturerSpecificData: GATT.ManufacturerSpecificData) {
         guard manufacturerSpecificData.companyIdentifier == Self.companyIdentifier,
@@ -92,7 +92,7 @@ public extension GoveeAccessory.Thermometer.ManufacturingData {
     }
 }
 
-public extension GoveeAccessory.Thermometer.ManufacturingData {
+public extension GoveeAccessory.Thermometer.ManufacturerData {
     
     struct EncodedTemperature: Sendable {
         
@@ -104,7 +104,7 @@ public extension GoveeAccessory.Thermometer.ManufacturingData {
     }
 }
 
-public extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature {
+public extension GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperature {
     
     var temperature: Float {
         Float(rawValue) / 10000
@@ -115,9 +115,9 @@ public extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature
     }
 }
 
-extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature: Codable { }
+extension GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperature: Codable { }
 
-extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature: RawRepresentable {
+extension GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperature: RawRepresentable {
     
     public init?(rawValue: UInt32) {
         guard rawValue.bigEndian.bytes.0 == 0x00 else {
@@ -137,7 +137,7 @@ extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature: RawRe
     }
 }
 
-extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature: ExpressibleByIntegerLiteral {
+extension GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperature: ExpressibleByIntegerLiteral {
     
     public init(integerLiteral value: UInt32) {
         self.init(value)
@@ -145,23 +145,23 @@ extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature: Expre
     }
 }
 
-extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature: CustomStringConvertible {
+extension GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperature: CustomStringConvertible {
     
     public var description: String {
         return rawValue.description
     }
 }
 
-extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature: Equatable {
+extension GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperature: Equatable {
     
-    public static func == (lhs: GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature, rhs: GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature) -> Bool {
+    public static func == (lhs: GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperature, rhs: GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperature) -> Bool {
         return lhs.byteValue.0 == rhs.byteValue.0
             && lhs.byteValue.1 == rhs.byteValue.1
             && lhs.byteValue.2 == rhs.byteValue.2
     }
 }
 
-extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature: Hashable {
+extension GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperature: Hashable {
     
     public func hash(into hasher: inout Hasher) {
         withUnsafePointer(to: byteValue) {
