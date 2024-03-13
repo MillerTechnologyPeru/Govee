@@ -2,22 +2,30 @@ import Foundation
 import Bluetooth
 import GATT
 
-public enum GoveeAdvertisement: Equatable, Hashable {
+/// Govee Accessory
+public enum GoveeAccessory: Equatable, Hashable, Sendable {
     
     case thermometer(Thermometer)
+    case kettle(Kettle)
 }
 
-extension GoveeAdvertisement: Identifiable {
+// MARK: - Identifiable
+
+extension GoveeAccessory: Identifiable {
     
     public var id: String {
         switch self {
-        case .thermometer(let thermometer):
-            return thermometer.name.description
+        case .thermometer(let value):
+            return value.id
+        case .kettle(let value):
+            return value.id
         }
     }
 }
 
-public extension GoveeAdvertisement {
+// MARK: - AdvertisementData
+
+public extension GoveeAccessory {
     
     init?<T: GATT.AdvertisementData>(_ advertisementData: T) {
         if let thermometer = Thermometer(advertisementData) {
@@ -26,4 +34,29 @@ public extension GoveeAdvertisement {
             return nil
         }
     }
+}
+
+// MARK: - Supporting Types
+
+public protocol GoveeAccessoryProtocol: Identifiable {
+    
+    /// Accessory Category
+    static var type: GoveeAccessoryType { get }
+    
+    /// Accessory Model
+    var model: GoveeModel { get }
+    
+    /// Unique identifier
+    ///
+    /// Typically the local name which is the model and the last 2 bytes of the Bluetooth MAC address.
+    var id: String { get }
+}
+
+/// Govee Accessory Category
+public enum GoveeAccessoryType: Equatable, Hashable, Sendable {
+    
+    case thermometer
+    case kettle
+    case heater
+    case riceCooker
 }

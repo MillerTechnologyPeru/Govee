@@ -9,24 +9,34 @@ import Foundation
 import Bluetooth
 import GATT
 
-public extension GoveeAdvertisement {
+public extension GoveeAccessory {
     
-    struct Thermometer: Equatable, Hashable {
+    struct Thermometer: Equatable, Hashable, Sendable, GoveeAccessoryProtocol {
+        
+        public static var type: GoveeAccessoryType { .thermometer }
         
         public static var services: Set<BluetoothUUID> { [.govee] }
         
         public let manufacturingData: ManufacturingData
         
-        public let name: Name
+        public let name: GoveeAdvertisementName
+        
+        public var model: GoveeModel {
+            name.model
+        }
+        
+        public var id: String {
+            name.rawValue
+        }
     }
 }
 
-public extension GoveeAdvertisement.Thermometer {
+public extension GoveeAccessory.Thermometer {
     
     init?<T: GATT.AdvertisementData>(_ advertisementData: T) {
         guard let manufacturingData = advertisementData.manufacturerData.flatMap({ ManufacturingData($0) }),
               let rawName = advertisementData.localName,
-              let name = Name(rawValue: rawName),
+              let name = GoveeAdvertisementName(rawValue: rawName),
               let serviceUUIDs = advertisementData.serviceUUIDs,
               serviceUUIDs.contains(where: { Self.services.contains($0) }) else {
             return nil
@@ -36,9 +46,9 @@ public extension GoveeAdvertisement.Thermometer {
     }
 }
 
-public extension GoveeAdvertisement.Thermometer {
+public extension GoveeAccessory.Thermometer {
     
-    struct ManufacturingData: Equatable, Hashable {
+    struct ManufacturingData: Equatable, Hashable, Sendable {
         
         public static var companyIdentifier: CompanyIdentifier { .govee }
         
@@ -62,7 +72,7 @@ public extension GoveeAdvertisement.Thermometer {
     }
 }
 
-public extension GoveeAdvertisement.Thermometer.ManufacturingData {
+public extension GoveeAccessory.Thermometer.ManufacturingData {
     
     init?(_ manufacturerSpecificData: GATT.ManufacturerSpecificData) {
         guard manufacturerSpecificData.companyIdentifier == Self.companyIdentifier,
@@ -82,9 +92,9 @@ public extension GoveeAdvertisement.Thermometer.ManufacturingData {
     }
 }
 
-public extension GoveeAdvertisement.Thermometer.ManufacturingData {
+public extension GoveeAccessory.Thermometer.ManufacturingData {
     
-    struct EncodedTemperature {
+    struct EncodedTemperature: Sendable {
         
         internal let byteValue: (UInt8, UInt8, UInt8)
         
@@ -94,7 +104,7 @@ public extension GoveeAdvertisement.Thermometer.ManufacturingData {
     }
 }
 
-public extension GoveeAdvertisement.Thermometer.ManufacturingData.EncodedTemperature {
+public extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature {
     
     var temperature: Float {
         Float(rawValue) / 10000
@@ -105,9 +115,9 @@ public extension GoveeAdvertisement.Thermometer.ManufacturingData.EncodedTempera
     }
 }
 
-extension GoveeAdvertisement.Thermometer.ManufacturingData.EncodedTemperature: Codable { }
+extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature: Codable { }
 
-extension GoveeAdvertisement.Thermometer.ManufacturingData.EncodedTemperature: RawRepresentable {
+extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature: RawRepresentable {
     
     public init?(rawValue: UInt32) {
         guard rawValue.bigEndian.bytes.0 == 0x00 else {
@@ -127,7 +137,7 @@ extension GoveeAdvertisement.Thermometer.ManufacturingData.EncodedTemperature: R
     }
 }
 
-extension GoveeAdvertisement.Thermometer.ManufacturingData.EncodedTemperature: ExpressibleByIntegerLiteral {
+extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature: ExpressibleByIntegerLiteral {
     
     public init(integerLiteral value: UInt32) {
         self.init(value)
@@ -135,60 +145,27 @@ extension GoveeAdvertisement.Thermometer.ManufacturingData.EncodedTemperature: E
     }
 }
 
-extension GoveeAdvertisement.Thermometer.ManufacturingData.EncodedTemperature: CustomStringConvertible {
+extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature: CustomStringConvertible {
     
     public var description: String {
         return rawValue.description
     }
 }
 
-extension GoveeAdvertisement.Thermometer.ManufacturingData.EncodedTemperature: Equatable {
+extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature: Equatable {
     
-    public static func == (lhs: GoveeAdvertisement.Thermometer.ManufacturingData.EncodedTemperature, rhs: GoveeAdvertisement.Thermometer.ManufacturingData.EncodedTemperature) -> Bool {
+    public static func == (lhs: GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature, rhs: GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature) -> Bool {
         return lhs.byteValue.0 == rhs.byteValue.0
             && lhs.byteValue.1 == rhs.byteValue.1
             && lhs.byteValue.2 == rhs.byteValue.2
     }
 }
 
-extension GoveeAdvertisement.Thermometer.ManufacturingData.EncodedTemperature: Hashable {
+extension GoveeAccessory.Thermometer.ManufacturingData.EncodedTemperature: Hashable {
     
     public func hash(into hasher: inout Hasher) {
         withUnsafePointer(to: byteValue) {
             hasher.combine(bytes: UnsafeRawBufferPointer(start: UnsafeRawPointer($0), count: 3))
         }
-    }
-}
-
-public extension GoveeAdvertisement.Thermometer {
-    
-    struct Name: Equatable, Hashable, Codable {
-        
-        public let model: GoveeModel
-        
-        internal let macSuffix: UInt16
-    }
-}
-
-extension GoveeAdvertisement.Thermometer.Name: RawRepresentable {
-    
-    public init?(rawValue: String) {
-        let components = rawValue.split(separator: "_")
-        guard components.count == 2,
-              let model = GoveeModel.allCases.first(where: { "GV" + $0.rawValue == components[0] }),
-              let address = UInt16(components[1], radix: 16)
-            else { return nil }
-        self.init(model: model, macSuffix: address)
-    }
-    
-    public var rawValue: String {
-        return "GV" + model.rawValue + "_" + macSuffix.toHexadecimal()
-    }
-}
-
-extension GoveeAdvertisement.Thermometer.Name: CustomStringConvertible {
-    
-    public var description: String {
-        return rawValue
     }
 }
