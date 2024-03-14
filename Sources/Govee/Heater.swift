@@ -32,9 +32,16 @@ public extension GoveeAccessory {
 public extension GoveeAccessory.Heater {
     
     init?<T: GATT.AdvertisementData>(_ advertisementData: T) {
-        guard let manufacturerData = advertisementData.manufacturerData.flatMap({ ManufacturerData($0) }),
-              let rawName = advertisementData.localName,
-              let name = GoveeAdvertisementName(rawValue: rawName) else {
+        guard let manufacturerData = advertisementData.manufacturerData,
+              let name = advertisementData.localName else {
+            return nil
+        }
+        self.init(name: name, manufacturerData: manufacturerData)
+    }
+    
+    init?(name: String, manufacturerData: GATT.ManufacturerSpecificData) {
+        guard let manufacturerData = ManufacturerData(manufacturerData),
+              let name = GoveeAdvertisementName(rawValue: name) else {
             return nil
         }
         self.manufacturerData = manufacturerData
