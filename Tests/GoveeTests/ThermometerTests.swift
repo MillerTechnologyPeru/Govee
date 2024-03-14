@@ -223,5 +223,28 @@ final class ThermometerTests: XCTestCase {
             XCTAssertEqual(advertisement.manufacturerData.temperature, 20.3432)
             XCTAssertEqual(advertisement.manufacturerData.humidity, 43.2)
         }
+        
+        
+        do {
+            let adverisementData: LowEnergyAdvertisingData = [0x0D, 0x09, 0x47, 0x56, 0x48, 0x35, 0x30, 0x37, 0x32, 0x5F, 0x37, 0x41, 0x32, 0x37, 0x03, 0x03, 0x88, 0xEC, 0x02, 0x01, 0x05, 0x09, 0xFF, 0x88, 0xEC, 0x00, 0x03, 0xA7, 0x61, 0x49, 0x00]
+            
+            XCTAssertEqual(adverisementData.localName, "GVH5072_7A27")
+            XCTAssertEqual(adverisementData.serviceUUIDs, [.bit16(0xEC88)])
+            XCTAssertEqual(adverisementData.manufacturerData?.companyIdentifier, .govee)
+            
+            guard let advertisement = GoveeAccessory.Thermometer(adverisementData) else {
+                XCTFail("Unable to parse")
+                return
+            }
+            
+            XCTAssertEqual(advertisement.name.description, "GVH5072_7A27")
+            XCTAssertEqual(advertisement.name.model, .h5072)
+            XCTAssertEqual(advertisement.manufacturerData.reserved0, 0)
+            XCTAssertEqual(advertisement.manufacturerData.reserved1, 0)
+            XCTAssertEqual(advertisement.manufacturerData.batteryLevel, 73)
+            XCTAssertEqual(advertisement.manufacturerData.encodedTemperature, 239457)
+            XCTAssertEqual(advertisement.manufacturerData.temperature, 23.9457)
+            XCTAssertEqual(advertisement.manufacturerData.humidity, 45.7)
+        }
     }
 }
