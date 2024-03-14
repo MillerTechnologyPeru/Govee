@@ -16,7 +16,7 @@ import BluetoothGATT
 
 final class KettleTests: XCTestCase {
     
-    func testGVH7173Advertisement() {
+    func testH7173Advertisement() {
         
         do {
             /*
@@ -156,6 +156,77 @@ final class KettleTests: XCTestCase {
             XCTAssert(advertisement.manufacturerData.isActive)
             XCTAssertEqual(advertisement.manufacturerData.state, .finishedBoiling)
         }
+    }
+    
+    func testH7175Advertisement() {
         
+        /*
+          HCI Event        0x0000  60:74:F4:8B:B7:19  LE - Ext ADV - 1 Report - Normal - Public - 60:74:F4:8B:B7:19  -67 dBm - ihoment_H7175_B719 - Channel 37
+             Parameter Length: 49 (0x31)
+             Num Reports: 0X01
+             Report 0
+                 Event Type: Connectable Advertising - Scannable Advertising - Legacy Advertising PDUs Used - Complete -
+                 Address Type: Public
+                 Peer Address: 60:74:F4:8B:B7:19
+                 Primary PHY: 1M
+                 Secondary PHY: No Packets
+                 Advertising SID: Unavailable
+                 Tx Power: Unavailable
+                 RSSI: -67 dBm
+                 Periodic Advertising Interval: 0.000000ms (0x0)
+                 Direct Address Type: Public
+                 Direct Address: 00:00:00:00:00:00
+                 Data Length: 23
+                 Flags: 0x5
+                     LE Limited Discoverable Mode
+                     BR/EDR Not Supported
+                 Local Name: ihoment_H7175_B719
+                 Data: 02 01 05 13 09 69 68 6F 6D 65 6E 74 5F 48 37 31 37 35 5F 42 37 31 39
+         */
+        
+        let advertisementData: LowEnergyAdvertisingData = [0x02, 0x01, 0x05, 0x13, 0x09, 0x69, 0x68, 0x6F, 0x6D, 0x65, 0x6E, 0x74, 0x5F, 0x48, 0x37, 0x31, 0x37, 0x35, 0x5F, 0x42, 0x37, 0x31, 0x39]
+        
+        XCTAssertEqual(advertisementData.localName, "ihoment_H7175_B719")
+        
+        /*
+         HCI Event        0x0000  60:74:F4:8B:B7:19  LE - Ext ADV - 1 Report - Normal - Public - 60:74:F4:8B:B7:19  -67 dBm - Manufacturer Specific Data - Channel 37
+             Parameter Length: 45 (0x2D)
+             Num Reports: 0X01
+             Report 0
+                 Event Type: Connectable Advertising - Scannable Advertising - Scan Response - Legacy Advertising PDUs Used - Complete -
+                 Address Type: Public
+                 Peer Address: 60:74:F4:8B:B7:19
+                 Primary PHY: 1M
+                 Secondary PHY: No Packets
+                 Advertising SID: Unavailable
+                 Tx Power: Unavailable
+                 RSSI: -67 dBm
+                 Periodic Advertising Interval: 0.000000ms (0x0)
+                 Direct Address Type: Public
+                 Direct Address: 00:00:00:00:00:00
+                 Data Length: 19
+                 Appearance: 000000
+                 Data: 03 19 00 00 0E FF 02 88 EC 00 01 01 00 00 00 65 CB 56 5D
+         */
+        
+        let scanResponse: LowEnergyAdvertisingData = [0x03, 0x19, 0x00, 0x00, 0x0E, 0xFF, 0x02, 0x88, 0xEC, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x65, 0xCB, 0x56, 0x5D]
+        
+        XCTAssertNil(scanResponse.localName)
+        XCTAssertNil(scanResponse.serviceUUIDs)
+        XCTAssertNil(scanResponse.serviceData)
+        XCTAssertEqual(scanResponse.manufacturerData?.companyIdentifier, 0x8802)
+        XCTAssertEqual(scanResponse.manufacturerData?.additionalData.count, 11)
+        
+        guard let name = advertisementData.localName,
+              let manufacturerData = scanResponse.manufacturerData,
+              let kettle = GoveeAccessory.Kettle(name: name, manufacturerData: manufacturerData) else {
+                XCTFail()
+            return
+        }
+        
+        XCTAssertEqual(kettle.id, "ihoment_H7175_B719")
+        XCTAssert(kettle.manufacturerData.isActive)
+        XCTAssertEqual(kettle.manufacturerData.state, .idle)
+        XCTAssertEqual(kettle.model, .h7175)
     }
 }
