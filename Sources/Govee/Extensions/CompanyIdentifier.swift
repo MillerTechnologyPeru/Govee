@@ -21,12 +21,4 @@ internal extension Bluetooth.CompanyIdentifier {
     init(govee value: GoveeManufacturerData.CompanyIdentifier) {
         self.init(rawValue: value.rawValue)
     }
-    
-    static var goveeHeater: CompanyIdentifier {
-        CompanyIdentifier(govee: .heater)
-    }
-    
-    static var goveeKettle: CompanyIdentifier {
-        CompanyIdentifier(govee: .kettle)
-    }
 }

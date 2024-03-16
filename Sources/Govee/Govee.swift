@@ -8,38 +8,14 @@ public enum GoveeAccessory: Equatable, Hashable, Sendable {
     case thermometer(Thermometer)
     case heater(Heater)
     case kettle(Kettle)
-}
-
-public extension GoveeAccessory {
-    
-    var model: GoveeModel {
-        switch self {
-        case .thermometer(let value):
-            return value.model
-        case .heater(let value):
-            return value.model
-        case .kettle(let value):
-            return value.model
-        }
-    }
-    
-    var type: GoveeAccessoryType {
-        switch self {
-        case .thermometer:
-            return .thermometer
-        case .heater:
-            return .heater
-        case .kettle:
-            return .kettle
-        }
-    }
+    case riceCooker(RiceCooker)
 }
 
 // MARK: - Identifiable
 
 extension GoveeAccessory: Identifiable {
     
-    public var id: String {
+    public var id: GoveeAdvertisementName {
         switch self {
         case .thermometer(let value):
             return value.id
@@ -47,7 +23,21 @@ extension GoveeAccessory: Identifiable {
             return value.id
         case .kettle(let value):
             return value.id
+        case .riceCooker(let value):
+            return value.id
         }
+    }
+    
+    public var type: GoveeAccessoryType {
+        id.model.type
+    }
+    
+    public var model: GoveeModel {
+        id.model
+    }
+    
+    public var address: BluetoothAddress {
+        id.address
     }
 }
 
@@ -56,13 +46,60 @@ extension GoveeAccessory: Identifiable {
 public extension GoveeAccessory {
     
     init?<T: GATT.AdvertisementData>(_ advertisementData: T) {
-        if let thermometer = Thermometer(advertisementData) {
-            self = .thermometer(thermometer)
-        } else if let heater = Heater(advertisementData) {
-            self = .heater(heater)
-        } else if let kettle = Kettle(advertisementData) {
-            self = .kettle(kettle)
-        } else {
+        guard let manufacturerData = advertisementData.manufacturerData,
+              let name = advertisementData.localName else {
+            return nil
+        }
+        self.init(name: name, manufacturerData: manufacturerData)
+    }
+    
+    init?(
+        name: String,
+        manufacturerData: GATT.ManufacturerSpecificData
+    ) {
+        guard let name = GoveeAdvertisementName(rawValue: name),
+              let manufacturerData = GoveeManufacturerData(manufacturerData) else {
+            return nil
+        }
+        self.init(name: name, manufacturerData: manufacturerData)
+    }
+    
+    internal init?(
+        name: GoveeAdvertisementName,
+        manufacturerData: GoveeManufacturerData
+    ) {
+        switch name.model.type {
+        case .thermometer:
+            guard let value = GoveeAccessory.Thermometer(name: name, manufacturerData: manufacturerData) else {
+                return nil
+            }
+            self = .thermometer(value)
+        case .heater:
+            guard let value = GoveeAccessory.Heater(name: name, manufacturerData: manufacturerData) else {
+                return nil
+            }
+            self = .heater(value)
+        case .kettle:
+            guard let value = GoveeAccessory.Kettle(name: name, manufacturerData: manufacturerData) else {
+                return nil
+            }
+            self = .kettle(value)
+        case .riceCooker:
+            guard let value = GoveeAccessory.RiceCooker(name: name, manufacturerData: manufacturerData) else {
+                return nil
+            }
+            self = .riceCooker(value)
+        case .iceMaker:
+            assertionFailure("Not implemented")
+            return nil
+        case .lighting:
+            assertionFailure("Not implemented")
+            return nil
+        case .smartPlug:
+            assertionFailure("Not implemented")
+            return nil
+        case .oilDiffuser:
+            assertionFailure("Not implemented")
             return nil
         }
     }
@@ -75,20 +112,5 @@ public protocol GoveeAccessoryProtocol: Identifiable {
     /// Accessory Category
     static var type: GoveeAccessoryType { get }
     
-    /// Accessory Model
-    var model: GoveeModel { get }
-    
-    /// Unique identifier
-    ///
-    /// Typically the local name which is the model and the last 2 bytes of the Bluetooth MAC address.
-    var id: String { get }
-}
-
-/// Govee Accessory Category
-public enum GoveeAccessoryType: Equatable, Hashable, Sendable {
-    
-    case thermometer
-    case heater
-    case kettle
-    case riceCooker
+    var id: GoveeAdvertisementName { get }
 }
