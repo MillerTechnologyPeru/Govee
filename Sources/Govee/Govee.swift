@@ -35,10 +35,6 @@ extension GoveeAccessory: Identifiable {
     public var model: GoveeModel {
         id.model
     }
-    
-    public var address: BluetoothAddress {
-        id.address
-    }
 }
 
 // MARK: - AdvertisementData
