@@ -11,15 +11,21 @@ import GATT
 
 public extension GoveeAccessory {
     
-    struct Kettle: Equatable, Hashable, Sendable, Codable, GoveeAccessoryProtocol {
+    struct Kettle: Equatable, Hashable, Sendable, GoveeAccessoryProtocol {
         
         public static var type: GoveeAccessoryType { .kettle }
                 
         public let id: GoveeAdvertisementName
         
-        public let isActive: Bool
+        internal let manufacturerData: ManufacturerData
         
-        public let state: KettleHeatingState?
+        public var isActive: Bool {
+            manufacturerData.isActive
+        }
+        
+        public var state: KettleHeatingState {
+            manufacturerData.state
+        }
     }
 }
 
@@ -38,33 +44,67 @@ public extension GoveeAccessory.Kettle {
         manufacturerData: GATT.ManufacturerSpecificData
     ) {
         guard let name = GoveeAdvertisementName(rawValue: name),
-              let manufacturerData = GoveeManufacturerData(manufacturerData) else {
+              let manufacturerData = ManufacturerData(manufacturerData) else {
             return nil
         }
         self.init(name: name, manufacturerData: manufacturerData)
     }
     
-    internal init?(name: GoveeAdvertisementName, manufacturerData: GoveeManufacturerData) {
+    internal init?(name: GoveeAdvertisementName, manufacturerData: ManufacturerData) {
         guard name.model.type == Self.type else {
             return nil
         }
-        switch manufacturerData {
-        case .thermometer:
-            return nil
-        case .v2(let manufacturerData):
-            self.isActive = manufacturerData.isActive
-            self.state = nil
-        case .v3(let manufacturerData):
-            guard let state = KettleHeatingState(rawValue: manufacturerData.state) else {
-                return nil
-            }
-            self.isActive = manufacturerData.isActive
-            self.state = state
-        }
         self.id = name
+        self.manufacturerData = manufacturerData
     }
 }
 
+extension GoveeAccessory.Kettle {
+    
+    struct ManufacturerData: Equatable, Hashable, Sendable {
+                
+        internal static var length: Int { 11 }
+        
+        internal let reserved0: UInt8
+        internal let reserved1: UInt8
+        internal let reserved2: UInt8
+        
+        public let isActive: Bool
+        
+        internal let reserved4: UInt8
+        
+        public let state: KettleHeatingState
+        
+        internal let reserved6: UInt8
+        internal let reserved7: UInt8
+        internal let reserved8: UInt8
+        internal let reserved9: UInt8
+    }
+}
+
+internal extension GoveeAccessory.Kettle.ManufacturerData {
+    
+    init?(_ manufacturerSpecificData: GATT.ManufacturerSpecificData) {
+        let data = manufacturerSpecificData.additionalData
+        guard data.count == Self.length,
+              data.first == 0xEC else {
+            return nil
+        }
+        guard let state = KettleHeatingState(rawValue: data[6]) else {
+            return nil
+        }
+        self.reserved0 = data[1]
+        self.reserved1 = data[2]
+        self.reserved2 = data[3]
+        self.isActive = data[4] != 0x00
+        self.reserved4 = data[5]
+        self.state = state
+        self.reserved6 = data[7]
+        self.reserved7 = data[8]
+        self.reserved8 = data[9]
+        self.reserved9 = data[10]
+    }
+}
 
 // MARK: - Supporting Types
 

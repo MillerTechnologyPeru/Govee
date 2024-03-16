@@ -18,7 +18,14 @@ public extension Bluetooth.CompanyIdentifier {
 
 internal extension Bluetooth.CompanyIdentifier {
     
-    init(govee value: GoveeManufacturerData.CompanyIdentifier) {
+    init(govee value: GoveeCompanyIdentifier) {
         self.init(rawValue: value.rawValue)
     }
+}
+
+internal enum GoveeCompanyIdentifier: UInt16, Sendable, Codable, CaseIterable {
+    
+    case thermometer    = 0xEC88
+    case v2             = 0x8802
+    case v3             = 0x8803
 }

@@ -52,26 +52,22 @@ public extension GoveeAccessory.Thermometer {
         manufacturerData: GATT.ManufacturerSpecificData
     ) {
         guard let name = GoveeAdvertisementName(rawValue: name),
-              let manufacturerData = GoveeManufacturerData(manufacturerData),
+              let manufacturerData = ManufacturerData(manufacturerData),
               serviceUUIDs.contains(where: { Self.services.contains($0) }) else {
             return nil
         }
         self.init(name: name, manufacturerData: manufacturerData)
     }
     
-    internal init?(name: GoveeAdvertisementName, manufacturerData: GoveeManufacturerData) {
+    internal init?(
+        name: GoveeAdvertisementName,
+        manufacturerData: ManufacturerData
+    ) {
         guard name.model.type == Self.type else {
             return nil
         }
-        switch manufacturerData {
-        case let .thermometer(value):
-            self.manufacturerData = value
-        case .v2:
-            return nil
-        case .v3:
-            return nil
-        }
         self.id = name
+        self.manufacturerData = manufacturerData
     }
 }
 

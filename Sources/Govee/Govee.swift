@@ -57,35 +57,32 @@ public extension GoveeAccessory {
         name: String,
         manufacturerData: GATT.ManufacturerSpecificData
     ) {
-        guard let name = GoveeAdvertisementName(rawValue: name),
-              let manufacturerData = GoveeManufacturerData(manufacturerData) else {
+        guard let name = GoveeAdvertisementName(rawValue: name) else {
             return nil
         }
-        self.init(name: name, manufacturerData: manufacturerData)
-    }
-    
-    internal init?(
-        name: GoveeAdvertisementName,
-        manufacturerData: GoveeManufacturerData
-    ) {
+        
         switch name.model.type {
         case .thermometer:
-            guard let value = GoveeAccessory.Thermometer(name: name, manufacturerData: manufacturerData) else {
+            guard let manufacturerData = GoveeAccessory.Thermometer.ManufacturerData(manufacturerData),
+                let value = GoveeAccessory.Thermometer(name: name, manufacturerData: manufacturerData) else {
                 return nil
             }
             self = .thermometer(value)
         case .heater:
-            guard let value = GoveeAccessory.Heater(name: name, manufacturerData: manufacturerData) else {
+            guard let manufacturerData = GoveeAccessory.Heater.ManufacturerData(manufacturerData),
+                let value = GoveeAccessory.Heater(name: name, manufacturerData: manufacturerData) else {
                 return nil
             }
             self = .heater(value)
         case .kettle:
-            guard let value = GoveeAccessory.Kettle(name: name, manufacturerData: manufacturerData) else {
+            guard let manufacturerData = GoveeAccessory.Kettle.ManufacturerData(manufacturerData),
+                let value = GoveeAccessory.Kettle(name: name, manufacturerData: manufacturerData) else {
                 return nil
             }
             self = .kettle(value)
         case .riceCooker:
-            guard let value = GoveeAccessory.RiceCooker(name: name, manufacturerData: manufacturerData) else {
+            guard let manufacturerData = GoveeAccessory.RiceCooker.ManufacturerData(manufacturerData),
+                let value = GoveeAccessory.RiceCooker(name: name, manufacturerData: manufacturerData) else {
                 return nil
             }
             self = .riceCooker(value)
