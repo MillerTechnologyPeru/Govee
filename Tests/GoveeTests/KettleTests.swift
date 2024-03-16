@@ -224,7 +224,7 @@ final class KettleTests: XCTestCase {
         }
         
         XCTAssertEqual(kettle.id.rawValue, "ihoment_H7175_B719")
-        XCTAssert(kettle.isActive)
+        XCTAssertFalse(kettle.isActive)
         XCTAssertEqual(kettle.state, .idle)
         XCTAssertEqual(kettle.id.model, .h7175)
     }
