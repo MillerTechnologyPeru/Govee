@@ -16,17 +16,21 @@ public extension GoveeAccessory {
         public static var type: GoveeAccessoryType { .thermometer }
         
         public static var services: Set<BluetoothUUID> { [.govee] }
+                
+        public let id: GoveeAdvertisementName
         
-        public let manufacturerData: ManufacturerData
+        internal let manufacturerData: ManufacturerData
         
-        public let name: GoveeAdvertisementName
-        
-        public var model: GoveeModel {
-            name.model
+        public var temperature: Float {
+            manufacturerData.temperature
         }
         
-        public var id: String {
-            name.rawValue
+        public var humidity: Float {
+            manufacturerData.humidity
+        }
+        
+        public var batteryLevel: UInt8 {
+            manufacturerData.batteryLevel
         }
     }
 }
@@ -34,19 +38,44 @@ public extension GoveeAccessory {
 public extension GoveeAccessory.Thermometer {
     
     init?<T: GATT.AdvertisementData>(_ advertisementData: T) {
-        guard let manufacturerData = advertisementData.manufacturerData.flatMap({ ManufacturerData($0) }),
-              let rawName = advertisementData.localName,
-              let name = GoveeAdvertisementName(rawValue: rawName),
+        guard let name = advertisementData.localName,
               let serviceUUIDs = advertisementData.serviceUUIDs,
+              let manufacturerData = advertisementData.manufacturerData else {
+            return nil
+        }
+        self.init(name: name, services: Set(serviceUUIDs), manufacturerData: manufacturerData)
+    }
+    
+    init?(
+        name: String,
+        services serviceUUIDs: Set<BluetoothUUID>,
+        manufacturerData: GATT.ManufacturerSpecificData
+    ) {
+        guard let name = GoveeAdvertisementName(rawValue: name),
+              let manufacturerData = GoveeManufacturerData(manufacturerData),
               serviceUUIDs.contains(where: { Self.services.contains($0) }) else {
             return nil
         }
-        self.manufacturerData = manufacturerData
-        self.name = name
+        self.init(name: name, manufacturerData: manufacturerData)
+    }
+    
+    internal init?(name: GoveeAdvertisementName, manufacturerData: GoveeManufacturerData) {
+        guard name.model.type == Self.type else {
+            return nil
+        }
+        switch manufacturerData {
+        case let .thermometer(value):
+            self.manufacturerData = value
+        case .v2:
+            return nil
+        case .v3:
+            return nil
+        }
+        self.id = name
     }
 }
 
-public extension GoveeAccessory.Thermometer {
+internal extension GoveeAccessory.Thermometer {
     
     struct ManufacturerData: Equatable, Hashable, Sendable {
         
@@ -72,7 +101,7 @@ public extension GoveeAccessory.Thermometer {
     }
 }
 
-public extension GoveeAccessory.Thermometer.ManufacturerData {
+internal extension GoveeAccessory.Thermometer.ManufacturerData {
     
     init?(_ manufacturerSpecificData: GATT.ManufacturerSpecificData) {
         guard manufacturerSpecificData.companyIdentifier == Self.companyIdentifier,
@@ -92,7 +121,7 @@ public extension GoveeAccessory.Thermometer.ManufacturerData {
     }
 }
 
-public extension GoveeAccessory.Thermometer.ManufacturerData {
+internal extension GoveeAccessory.Thermometer.ManufacturerData {
     
     struct EncodedTemperature: Sendable {
         
@@ -104,7 +133,7 @@ public extension GoveeAccessory.Thermometer.ManufacturerData {
     }
 }
 
-public extension GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperature {
+internal extension GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperature {
     
     var temperature: Float {
         Float(rawValue) / 10000
