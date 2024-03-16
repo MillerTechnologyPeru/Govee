@@ -14,7 +14,7 @@ public struct GoveeAdvertisementName: RawRepresentable, Equatable, Hashable, Cod
     
     public let model: GoveeModel
     
-    internal let macSuffix: UInt16
+    internal let addressSuffix: UInt16
     
     public init?(rawValue: String) {
         var string = rawValue
@@ -37,16 +37,16 @@ public struct GoveeAdvertisementName: RawRepresentable, Equatable, Hashable, Cod
         self.init(
             rawValue: rawValue,
             model: model,
-            macSuffix: macSuffix
+            addressSuffix: macSuffix
         )
     }
     
-    internal init(rawValue: String, model: GoveeModel, macSuffix: UInt16) {
+    internal init(rawValue: String, model: GoveeModel, addressSuffix: UInt16) {
         self.rawValue = rawValue
         self.model = model
-        self.macSuffix = macSuffix
+        self.addressSuffix = addressSuffix
         assert(rawValue.localizedStandardContains(model.rawValue))
-        assert(rawValue.hasSuffix(macSuffix.toHexadecimal()))
+        assert(rawValue.hasSuffix(addressSuffix.toHexadecimal()))
     }
 }
 
