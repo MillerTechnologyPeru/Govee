@@ -142,8 +142,8 @@ final class ThermometerTests: XCTestCase {
                 return
             }
             
-            XCTAssertEqual(advertisement.name.description, "GVH5072_7A27")
-            XCTAssertEqual(advertisement.name.model, .h5072)
+            XCTAssertEqual(advertisement.id.description, "GVH5072_7A27")
+            XCTAssertEqual(advertisement.id.model, .h5072)
             XCTAssertEqual(advertisement.manufacturerData.reserved0, 0)
             XCTAssertEqual(advertisement.manufacturerData.reserved1, 0)
             XCTAssertEqual(advertisement.manufacturerData.batteryLevel, 100)
@@ -214,8 +214,8 @@ final class ThermometerTests: XCTestCase {
                 return
             }
             
-            XCTAssertEqual(advertisement.name.description, "GVH5072_CF9C")
-            XCTAssertEqual(advertisement.name.model, .h5072)
+            XCTAssertEqual(advertisement.id.description, "GVH5072_CF9C")
+            XCTAssertEqual(advertisement.id.model, .h5072)
             XCTAssertEqual(advertisement.manufacturerData.reserved0, 0)
             XCTAssertEqual(advertisement.manufacturerData.reserved1, 0)
             XCTAssertEqual(advertisement.manufacturerData.batteryLevel, 100)
@@ -237,8 +237,8 @@ final class ThermometerTests: XCTestCase {
                 return
             }
             
-            XCTAssertEqual(advertisement.name.description, "GVH5072_7A27")
-            XCTAssertEqual(advertisement.name.model, .h5072)
+            XCTAssertEqual(advertisement.id.description, "GVH5072_7A27")
+            XCTAssertEqual(advertisement.id.model, .h5072)
             XCTAssertEqual(advertisement.manufacturerData.reserved0, 0)
             XCTAssertEqual(advertisement.manufacturerData.reserved1, 0)
             XCTAssertEqual(advertisement.manufacturerData.batteryLevel, 73)

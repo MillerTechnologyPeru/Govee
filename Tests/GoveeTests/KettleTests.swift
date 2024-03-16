@@ -58,8 +58,8 @@ final class KettleTests: XCTestCase {
                 return
             }
             
-            XCTAssertFalse(advertisement.manufacturerData.isActive)
-            XCTAssertEqual(advertisement.manufacturerData.state, .idle)
+            XCTAssertFalse(advertisement.isActive)
+            XCTAssertEqual(advertisement.state, .idle)
         }
         
         // While boiling, Coffee
@@ -77,8 +77,8 @@ final class KettleTests: XCTestCase {
                 return
             }
             
-            XCTAssert(advertisement.manufacturerData.isActive)
-            XCTAssertEqual(advertisement.manufacturerData.state, .heating)
+            XCTAssert(advertisement.isActive)
+            XCTAssertEqual(advertisement.state, .heating)
         }
         
         // Boiling, DIY
@@ -96,8 +96,8 @@ final class KettleTests: XCTestCase {
                 return
             }
             
-            XCTAssert(advertisement.manufacturerData.isActive)
-            XCTAssertEqual(advertisement.manufacturerData.state, .heating)
+            XCTAssert(advertisement.isActive)
+            XCTAssertEqual(advertisement.state, .heating)
         }
         
         // Keep warm, Coffee (heating)
@@ -115,8 +115,8 @@ final class KettleTests: XCTestCase {
                 return
             }
             
-            XCTAssert(advertisement.manufacturerData.isActive)
-            XCTAssertEqual(advertisement.manufacturerData.state, .heating)
+            XCTAssert(advertisement.isActive)
+            XCTAssertEqual(advertisement.state, .heating)
         }
         
         // Keep warm, Coffee (finished heating)
@@ -134,8 +134,8 @@ final class KettleTests: XCTestCase {
                 return
             }
             
-            XCTAssert(advertisement.manufacturerData.isActive)
-            XCTAssertEqual(advertisement.manufacturerData.state, .keepingWarm)
+            XCTAssert(advertisement.isActive)
+            XCTAssertEqual(advertisement.state, .keepingWarm)
         }
         
         
@@ -153,8 +153,8 @@ final class KettleTests: XCTestCase {
                 return
             }
             
-            XCTAssert(advertisement.manufacturerData.isActive)
-            XCTAssertEqual(advertisement.manufacturerData.state, .finishedBoiling)
+            XCTAssert(advertisement.isActive)
+            XCTAssertEqual(advertisement.state, .finishedBoiling)
         }
     }
     
@@ -208,7 +208,6 @@ final class KettleTests: XCTestCase {
                  Appearance: 000000
                  Data: 03 19 00 00 0E FF 02 88 EC 00 01 01 00 00 00 65 CB 56 5D
          */
-        
         let scanResponse: LowEnergyAdvertisingData = [0x03, 0x19, 0x00, 0x00, 0x0E, 0xFF, 0x02, 0x88, 0xEC, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x65, 0xCB, 0x56, 0x5D]
         
         XCTAssertNil(scanResponse.localName)
@@ -224,9 +223,9 @@ final class KettleTests: XCTestCase {
             return
         }
         
-        XCTAssertEqual(kettle.id, "ihoment_H7175_B719")
-        XCTAssert(kettle.manufacturerData.isActive)
-        XCTAssertEqual(kettle.manufacturerData.state, .idle)
-        XCTAssertEqual(kettle.model, .h7175)
+        XCTAssertEqual(kettle.id.rawValue, "ihoment_H7175_B719")
+        XCTAssert(kettle.isActive)
+        XCTAssertEqual(kettle.state, .idle)
+        XCTAssertEqual(kettle.id.model, .h7175)
     }
 }

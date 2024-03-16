@@ -82,13 +82,13 @@ final class HeaterTests: XCTestCase {
         guard let name = advertisementData.localName,
               let manufacturerData = scanResponse.manufacturerData,
               let heater = GoveeAccessory.Heater(name: name, manufacturerData: manufacturerData) else {
-                XCTFail()
+            XCTFail()
             return
         }
         
-        XCTAssertEqual(heater.id, "ihoment_H7131_A975")
-        XCTAssert(heater.manufacturerData.isActive)
-        XCTAssertEqual(heater.model, .h7131)
+        XCTAssertEqual(heater.id.rawValue, "ihoment_H7131_A975")
+        XCTAssert(heater.isActive)
+        XCTAssertEqual(heater.id.model, .h7131)
     }
     
     func testH7135Advertisement() {
@@ -161,9 +161,9 @@ final class HeaterTests: XCTestCase {
             return
         }
         
-        XCTAssertEqual(heater.id, "ihoment_H7135_9F73")
-        XCTAssert(heater.manufacturerData.isActive)
-        XCTAssertEqual(heater.model, .h7135)
+        XCTAssertEqual(heater.id.rawValue, "ihoment_H7135_9F73")
+        XCTAssert(heater.isActive)
+        XCTAssertEqual(heater.id.model, .h7135)
     }
     
     func testManufacturerData() {
@@ -172,7 +172,7 @@ final class HeaterTests: XCTestCase {
         do {
             let scanResponse: LowEnergyAdvertisingData = [0x03, 0x19, 0x00, 0x00, 0x09, 0xFF, 0x02, 0x88, 0xEC, 0x00, 0x01, 0x01, 0x01, 0x00]
             guard let manufacturerData = scanResponse.manufacturerData,
-                  let heaterManufacturerData = GoveeAccessory.Heater.ManufacturerData(manufacturerData) else {
+                  let heaterManufacturerData = GoveeManufacturerData.V2(manufacturerData) else {
                 XCTFail()
                 return
             }
@@ -184,7 +184,7 @@ final class HeaterTests: XCTestCase {
         do {
             let scanResponse: LowEnergyAdvertisingData = [0x03, 0x19, 0x00, 0x00, 0x09, 0xFF, 0x02, 0x88, 0xEC, 0x00, 0x01, 0x01, 0x00, 0x00]
             guard let manufacturerData = scanResponse.manufacturerData,
-                  let heaterManufacturerData = GoveeAccessory.Heater.ManufacturerData(manufacturerData) else {
+                  let heaterManufacturerData = GoveeManufacturerData.V2(manufacturerData) else {
                 XCTFail()
                 return
             }
