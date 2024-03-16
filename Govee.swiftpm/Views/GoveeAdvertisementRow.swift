@@ -40,7 +40,7 @@ extension GoveeAdvertisementRow {
                     Text(verbatim: advertisement.id.model.rawValue)
                         .font(.title3)
                 }
-                Text(verbatim: advertisement.id.address.rawValue)
+                Text(verbatim: advertisement.id.rawValue)
                     .foregroundColor(.gray)
                     .font(.subheadline)
                 Text("Battery: \(batteryLevel)%")
@@ -86,7 +86,7 @@ extension GoveeAdvertisementRow {
                     Text(verbatim: advertisement.id.model.rawValue)
                         .font(.title3)
                 }
-                Text(verbatim: advertisement.id.address.rawValue)
+                Text(verbatim: advertisement.id.rawValue)
                     .foregroundColor(.gray)
                     .font(.subheadline)
                 Text("Heating: \(advertisement.isActive)")
@@ -109,7 +109,7 @@ extension GoveeAdvertisementRow {
                     Text(verbatim: advertisement.id.model.rawValue)
                         .font(.title3)
                 }
-                Text(verbatim: advertisement.id.address.rawValue)
+                Text(verbatim: advertisement.id.rawValue)
                     .foregroundColor(.gray)
                     .font(.subheadline)
                 Text("State: \(advertisement.state)")
@@ -131,7 +131,7 @@ extension GoveeAdvertisementRow {
                     Text(verbatim: advertisement.id.model.rawValue)
                         .font(.title3)
                 }
-                Text(verbatim: advertisement.id.address.rawValue)
+                Text(verbatim: advertisement.id.rawValue)
                     .foregroundColor(.gray)
                     .font(.subheadline)
                 Text("Cooking: \(advertisement.isActive)")
