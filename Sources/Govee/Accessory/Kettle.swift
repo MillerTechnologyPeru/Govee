@@ -65,6 +65,8 @@ extension GoveeAccessory.Kettle {
                 
         internal static var length: Int { 11 }
         
+        internal let companyIdentifier: GoveeCompanyIdentifier
+        
         internal let reserved0: UInt8
         internal let reserved1: UInt8
         internal let reserved2: UInt8
@@ -86,13 +88,15 @@ internal extension GoveeAccessory.Kettle.ManufacturerData {
     
     init?(_ manufacturerSpecificData: GATT.ManufacturerSpecificData) {
         let data = manufacturerSpecificData.additionalData
-        guard data.count == Self.length,
+        guard let companyIdentifier = GoveeCompanyIdentifier(rawValue: manufacturerSpecificData.companyIdentifier.rawValue),
+              data.count == Self.length,
               data.first == 0xEC else {
             return nil
         }
         guard let state = KettleHeatingState(rawValue: data[6]) else {
             return nil
         }
+        self.companyIdentifier = companyIdentifier
         self.reserved0 = data[1]
         self.reserved1 = data[2]
         self.reserved2 = data[3]
