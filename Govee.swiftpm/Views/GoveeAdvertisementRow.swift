@@ -21,6 +21,8 @@ struct GoveeAdvertisementRow: View {
             return AnyView(Heater(advertisement: heater))
         case .kettle(let kettle):
             return AnyView(Kettle(advertisement: kettle))
+        case .riceCooker(let riceCooker):
+            return AnyView(RiceCooker(advertisement: riceCooker))
         }
     }
 }
@@ -35,17 +37,17 @@ extension GoveeAdvertisementRow {
             VStack(alignment: .leading) {
                 HStack {
                     Image(systemName: "thermometer")
-                    Text(verbatim: advertisement.model.rawValue)
+                    Text(verbatim: advertisement.id.model.rawValue)
                         .font(.title3)
                 }
-                Text(verbatim: advertisement.name.rawValue)
+                Text(verbatim: advertisement.id.address.rawValue)
                     .foregroundColor(.gray)
                     .font(.subheadline)
-                Text("Battery: \(batteryLevel) %")
+                Text("Battery: \(batteryLevel)%")
                     .font(.subheadline)
-                Text("Temperature: \(temperature) C°")
+                Text("Temperature: \(temperature)C°")
                     .font(.subheadline)
-                Text("Humidity: \(humidity) %")
+                Text("Humidity: \(humidity)%")
                     .font(.subheadline)
             }
         }
@@ -55,15 +57,15 @@ extension GoveeAdvertisementRow {
 private extension GoveeAdvertisementRow.Thermometer {
     
     var batteryLevel: String {
-        advertisement.manufacturerData.batteryLevel.description
+        advertisement.batteryLevel.description
     }
     
     var temperature: String {
-        format(advertisement.manufacturerData.temperature)
+        format(advertisement.temperature)
     }
     
     var humidity: String {
-        format(advertisement.manufacturerData.humidity)
+        format(advertisement.humidity)
     }
     
     func format(_ float: Float) -> String {
@@ -81,13 +83,13 @@ extension GoveeAdvertisementRow {
             VStack(alignment: .leading) {
                 HStack {
                     Image(systemName: "heater.vertical")
-                    Text(verbatim: advertisement.model.rawValue)
+                    Text(verbatim: advertisement.id.model.rawValue)
                         .font(.title3)
                 }
-                Text(verbatim: advertisement.name.rawValue)
+                Text(verbatim: advertisement.id.address.rawValue)
                     .foregroundColor(.gray)
                     .font(.subheadline)
-                Text("Heating: \(advertisement.manufacturerData.isActive)")
+                Text("Heating: \(advertisement.isActive)")
                     .font(.subheadline)
             }
         }
@@ -104,13 +106,36 @@ extension GoveeAdvertisementRow {
             VStack(alignment: .leading) {
                 HStack {
                     Image(systemName: "cup.and.saucer.fill")
-                    Text(verbatim: advertisement.model.rawValue)
+                    Text(verbatim: advertisement.id.model.rawValue)
                         .font(.title3)
                 }
-                Text(verbatim: advertisement.name.rawValue)
+                Text(verbatim: advertisement.id.address.rawValue)
                     .foregroundColor(.gray)
                     .font(.subheadline)
-                Text("State: \(advertisement.manufacturerData.state)")
+                Text("State: \(advertisement.state)")
+            }
+        }
+    }
+}
+
+extension GoveeAdvertisementRow {
+    
+    struct RiceCooker: View {
+        
+        let advertisement: GoveeAccessory.RiceCooker
+        
+        var body: some View {
+            VStack(alignment: .leading) {
+                HStack {
+                    Image(systemName: "cooktop.fill")
+                    Text(verbatim: advertisement.id.model.rawValue)
+                        .font(.title3)
+                }
+                Text(verbatim: advertisement.id.address.rawValue)
+                    .foregroundColor(.gray)
+                    .font(.subheadline)
+                Text("Cooking: \(advertisement.isActive)")
+                    .font(.subheadline)
             }
         }
     }
