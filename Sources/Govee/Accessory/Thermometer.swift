@@ -46,10 +46,10 @@ public extension GoveeAccessory.Thermometer {
         self.init(name: name, services: Set(serviceUUIDs), manufacturerData: manufacturerData)
     }
     
-    init?(
+    init?<T: DataContainer>(
         name: String,
         services serviceUUIDs: Set<BluetoothUUID>,
-        manufacturerData: GATT.ManufacturerSpecificData
+        manufacturerData: GATT.ManufacturerSpecificData<T>
     ) {
         guard let name = GoveeAdvertisementName(rawValue: name),
               let manufacturerData = ManufacturerData(manufacturerData),
@@ -99,7 +99,7 @@ internal extension GoveeAccessory.Thermometer {
 
 internal extension GoveeAccessory.Thermometer.ManufacturerData {
     
-    init?(_ manufacturerSpecificData: GATT.ManufacturerSpecificData) {
+    init?<T: DataContainer>(_ manufacturerSpecificData: GATT.ManufacturerSpecificData<T>) {
         guard manufacturerSpecificData.companyIdentifier == Self.companyIdentifier,
               manufacturerSpecificData.additionalData.count >= Self.length
             else {
