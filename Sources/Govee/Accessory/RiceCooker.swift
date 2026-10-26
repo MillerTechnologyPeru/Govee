@@ -35,9 +35,9 @@ public extension GoveeAccessory.RiceCooker {
         self.init(name: name, manufacturerData: manufacturerData)
     }
     
-    init?(
+    init?<T: DataContainer>(
         name: String,
-        manufacturerData: GATT.ManufacturerSpecificData
+        manufacturerData: GATT.ManufacturerSpecificData<T>
     ) {
         guard let name = GoveeAdvertisementName(rawValue: name),
               let manufacturerData = ManufacturerData(manufacturerData) else {
@@ -80,7 +80,7 @@ extension GoveeAccessory.RiceCooker {
 
 extension GoveeAccessory.RiceCooker.ManufacturerData {
     
-    init?(_ manufacturerSpecificData: GATT.ManufacturerSpecificData) {
+    init?<T: DataContainer>(_ manufacturerSpecificData: GATT.ManufacturerSpecificData<T>) {
         let data = manufacturerSpecificData.additionalData
         guard let companyIdentifier = GoveeCompanyIdentifier(rawValue: manufacturerSpecificData.companyIdentifier.rawValue),
               data.count == Self.length,

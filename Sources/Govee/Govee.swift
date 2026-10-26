@@ -49,9 +49,9 @@ public extension GoveeAccessory {
         self.init(name: name, manufacturerData: manufacturerData)
     }
     
-    init?(
+    init?<T: DataContainer>(
         name: String,
-        manufacturerData: GATT.ManufacturerSpecificData
+        manufacturerData: GATT.ManufacturerSpecificData<T>
     ) {
         guard let name = GoveeAdvertisementName(rawValue: name) else {
             return nil
