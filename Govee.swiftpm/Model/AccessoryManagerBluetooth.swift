@@ -99,7 +99,7 @@ internal extension AccessoryManager {
             assert(Thread.isMainThread == false)
             var cache = oldCacheValue ?? ScanDataCache(scanData: scanData)
             cache += scanData
-            #if canImport(CoreBluetooth)
+            #if !targetEnvironment(simulator)
             for serviceUUID in scanData.advertisementData.overflowServiceUUIDs ?? [] {
                 cache.overflowServiceUUIDs.insert(serviceUUID)
             }
