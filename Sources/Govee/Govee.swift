@@ -82,17 +82,11 @@ public extension GoveeAccessory {
                 return nil
             }
             self = .riceCooker(value)
-        case .iceMaker:
-            assertionFailure("Not implemented")
-            return nil
-        case .lighting:
-            assertionFailure("Not implemented")
-            return nil
-        case .smartPlug:
-            assertionFailure("Not implemented")
-            return nil
-        case .oilDiffuser:
-            assertionFailure("Not implemented")
+        case .iceMaker,
+            .lighting,
+            .smartPlug,
+            .oilDiffuser:
+            // Not implemented
             return nil
         }
     }
