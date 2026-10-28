@@ -11,12 +11,14 @@ import GATT
 
 public struct ScanDataCache <Peripheral: Peer, Advertisement: AdvertisementData>: Equatable, Hashable {
     
+    public typealias Data = Advertisement.Data
+    
     /// Last scan result.
     public internal(set) var scanData: GATT.ScanData<Peripheral, Advertisement>
     
     public internal(set) var localName: String?
     
-    public internal(set) var manufacturerData: GATT.ManufacturerSpecificData?
+    public internal(set) var manufacturerData: GATT.ManufacturerSpecificData<Data>?
     
     /// This value is available if the broadcaster (peripheral) provides its Tx power level in its advertising packet.
     /// Using the RSSI value and the Tx power level, it is possible to calculate path loss.
