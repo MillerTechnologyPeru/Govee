@@ -193,7 +193,7 @@ This scheme ("v1") was first published by community projects; see `SoloUnity/gov
 
 Because bytes 16–18 of most packets are zero padding, the encrypted bytes 16–18 are the same for the whole session (`87 53 32` in our capture).
 
-**Handshake.** Before the first frame, the client negotiates a session key. Handshake frames are encrypted with a fixed 16-byte communication key that is built into the Govee app and published in the projects above.
+**Handshake.** Before the first frame, the client negotiates a session key. Handshake frames are encrypted with a fixed 16-byte communication key built into the Govee app and shared by all devices: the ASCII string `MakingLifeSmarte`. The library implements the scheme in `GoveeEncryptionKey` and `GoveePacket.negotiation` (`Sources/Govee/Protocol/GoveeEncryption.swift`), tested against the captured sessions in `EncryptionTests`.
 
 1. On connect, the heater sends an encrypted `AA 01` status notification on `…2b10` (with the communication key).
 2. Client → `…2b11`: `E7 01` + 17 random bytes.
