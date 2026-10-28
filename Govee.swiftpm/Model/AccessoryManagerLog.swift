@@ -9,7 +9,7 @@ import Foundation
 
 public extension AccessoryManager {
     
-    func log(_ message: String) {
+    nonisolated func log(_ message: String) {
         print(message)
     }
 }
