@@ -23,6 +23,8 @@ struct GoveeAdvertisementRow: View {
             return AnyView(Kettle(advertisement: kettle))
         case .riceCooker(let riceCooker):
             return AnyView(RiceCooker(advertisement: riceCooker))
+        case .airPurifier(let airPurifier):
+            return AnyView(AirPurifier(advertisement: airPurifier))
         }
     }
 }
@@ -135,6 +137,29 @@ extension GoveeAdvertisementRow {
                     .foregroundColor(.gray)
                     .font(.subheadline)
                 Text("Cooking: \(advertisement.isActive)")
+                    .font(.subheadline)
+            }
+        }
+    }
+}
+
+extension GoveeAdvertisementRow {
+    
+    struct AirPurifier: View {
+        
+        let advertisement: GoveeAccessory.AirPurifier
+        
+        var body: some View {
+            VStack(alignment: .leading) {
+                HStack {
+                    Image(systemName: "wind")
+                    Text(verbatim: advertisement.id.model.rawValue)
+                        .font(.title3)
+                }
+                Text(verbatim: advertisement.id.rawValue)
+                    .foregroundColor(.gray)
+                    .font(.subheadline)
+                Text("Active: \(advertisement.isActive)")
                     .font(.subheadline)
             }
         }

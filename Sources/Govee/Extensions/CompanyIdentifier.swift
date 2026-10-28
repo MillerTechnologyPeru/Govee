@@ -28,4 +28,7 @@ internal enum GoveeCompanyIdentifier: UInt16, Sendable, Codable, CaseIterable {
     case thermometer    = 0xEC88
     case v2             = 0x8802
     case v3             = 0x8803
+
+    /// Seen on H7173 kettle with newer firmware.
+    case v3Alternate    = 0x8843
 }
