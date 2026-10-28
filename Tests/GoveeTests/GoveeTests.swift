@@ -32,4 +32,23 @@ final class GoveeTests: XCTestCase {
             XCTAssertEqual(name.addressSuffix, decoded.addressSuffix)
         }
     }
+
+    func testUnsupportedModelsReturnNil() {
+
+        // valid names for models without a decoder, with arbitrary manufacturer data
+        let names: [(String, GoveeAccessoryType)] = [
+            ("GVH7172_1A2B", .iceMaker),
+            ("GVH5086_1A2B", .smartPlug),
+            ("GVH7161_1A2B", .oilDiffuser),
+            ("GVH7162_1A2B", .oilDiffuser),
+        ]
+        let manufacturerData = GATT.ManufacturerSpecificData(
+            companyIdentifier: .govee,
+            additionalData: Data([0xEC, 0x00, 0x01, 0x01, 0x01, 0x00])
+        )
+        for (name, type) in names {
+            XCTAssertEqual(GoveeAdvertisementName(rawValue: name)?.model.type, type)
+            XCTAssertNil(GoveeAccessory(name: name, manufacturerData: manufacturerData))
+        }
+    }
 }
