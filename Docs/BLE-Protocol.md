@@ -175,7 +175,7 @@ Devices answer every command and query with a notification that echoes bytes 0�
 
 ### Encrypted sessions (H7135 heater)
 
-Some devices only accept encrypted frames. The H7135 heater is one; the H712C purifier is not. Under the encryption the frames are the ordinary 20-byte packets described above. **Verified**: every frame in a PacketLogger capture of the Govee app talking to the H7135 on 2026-10-28 decrypts to a packet with a valid checksum using this scheme.
+Some devices only accept encrypted frames. The H7135 heater (firmware 1.00.30) and H7173 kettle (firmware 1.00.24) are two; the H712C purifier (1.00.16) is not. Under the encryption the frames are the ordinary 20-byte packets described above. **Verified**: every frame in PacketLogger captures of the Govee app talking to the H7135 and the H7173 on 2026-10-28 decrypts to a packet with a valid checksum using this scheme.
 
 This scheme ("v1") was first published by community projects; see `SoloUnity/govee-ble-purifiers` (`crypto.py`) and `Fredde87/ha-govee-led-ble` in the [references](#9-references).
 
@@ -259,7 +259,33 @@ The heater also sends events with id `0xEE`: `EE AA 01` and `EE 19 05 <value>` (
 
 ### H7173 kettle
 
-Not queried; it stopped advertising while idle.
+[Encrypted](#encrypted-sessions-h7135-heater). Decrypted from a Govee app capture on 2026-10-28, matched to a screen recording of the app. Temperatures are degrees Fahrenheit × 100, big endian (`36 4C` = 13900 = 139 °F). **Verified** unless marked.
+
+| Request | Reply (bytes 1…) | Meaning |
+|---|---|---|
+| `AA 00` | `00 <heating> 00 01 <temp, 2 bytes> 01 <keep warm>` | Heating `00`/`01`; current water temperature; byte 8 `01` when keep warm is enabled (**Observed**). |
+| `AA 05 00` | `05 00 <mode> <value…>` | Current mode, in the same form as the [mode command](#h7173-kettle-1): `01 01` DIY slot 1, `02 00` boiling, `05 43 F8` manual 174 °F. |
+| `AA 05 01 <page>` | `05 01 <page>` + 2 presets + `01` | DIY presets. |
+| `AA 05 03 <page>` | `05 03 <page>` + 2 presets + `01` | Tea presets. |
+| `AA 05 04 <page>` | `05 04 <page>` + 2 presets + `01` | Coffee presets. |
+| `AA 22` | `22 <on> 00 <minutes> <minutes>` | Keep warm: `22 01 00 3C 3C` = on, 60 minutes. The second minutes byte may be remaining time. |
+| `AA 06` | `06` + ASCII | Firmware version, `1.00.24`. |
+| `AA 07 03`, `AA 20` | ASCII | `1.02.00`, probably hardware version. **Observed.** |
+| `AA 07 0A`, `AA 07 0B`, `AA 21` | ASCII | `1.00.10`, `1.00.01`, `1.00.24`. Unknown component versions. **Observed.** |
+| `AA 14` | `14` + 6 bytes | `60 74 F4 57 2A DA`, an address one below the Bluetooth address `…2A:DB`. **Observed.** |
+| `AA 23` | `23 00 01 A4 66 68 27 5C` | Unknown. **Observed.** |
+| `AA 17` | all `00` | Unknown or empty. |
+
+Each preset entry is 4 bytes: `<temp, 2 bytes> <index> 00`, or `FF FF FF FF` for an empty slot. Bit 15 of the temperature is set on built-in presets that the app does not let you edit. In our capture:
+
+| Category | Page | Entries | App |
+|---|---|---|---|
+| DIY (`01`) | 0 | `42 68 01 00`, empty | Custom1 170 °F |
+| Tea (`03`) | 0 | `C6 50 01 00`, `D2 D0 02 00` | Green Tea 180 °F (built in), Black Tea 212 °F (built in) |
+| Tea (`03`) | 1 | `4C 2C 03 00`, empty | Oolong Tea 195 °F |
+| Coffee (`04`) | 0 | `50 14 01 00`, empty | Coffee1 205 °F |
+
+Events: `EE 22 <keep warm reply>` when keep warm changes, and `EE AA 00` after other changes.
 
 ## 6. Commands
 
@@ -339,9 +365,21 @@ Sent [encrypted](#encrypted-sessions-h7135-heater). Decrypted from the Govee app
 | Display on / off | `33 16 01 FF FF FF FF` / `33 16 00 FF FF FF FF` | `FF FF FF FF` likely means no schedule. The purifier's `AA 16` reply `16 01 00 00 17 3B` suggests a schedule of 00:00–23:59. |
 | Lock on / off | `33 1F 02 01` / `33 1F 02 00` | |
 
-### Other appliances
+### H7173 kettle
 
-Kettle target temperature is still unknown. Capture from the Govee app before sending anything.
+Sent [encrypted](#encrypted-sessions-h7135-heater). Decrypted from the Govee app capture on 2026-10-28 and matched to a screen recording; the device echoes each command. **Verified.**
+
+| Action | Packet (bytes 0…) | Notes |
+|---|---|---|
+| Start heating / cancel | `33 01 01` / `33 01 00` | |
+| Set target temperature | `3A 05 00 05 <temp, 2 bytes>` | °F × 100: `2B 5C` = 111 °F, `43 F8` = 174 °F. Mode `05` (manual). |
+| Boiling preset | `3A 05 00 02 00` | Mode `02`, 212 °F |
+| DIY preset | `3A 05 00 01 <index>` | Mode `01`. Index from `AA 05 01`. |
+| Tea preset | `3A 05 00 03 <index>` | Mode `03`. `01` Green, `02` Black, `03` Oolong in our capture. |
+| Coffee preset | `3A 05 00 04 <index>` | Mode `04`. |
+| Keep warm on / off | `3A 22 <01/00> 00 <minutes>` | `3A 22 01 00 3C` = on for 60 minutes. Reply adds a second minutes byte. Can be set while idle ("Keep Warm will be ON next time"). |
+
+Choosing a preset or a target does not start heating; the app sends `33 01 01` separately. Commands to edit preset temperatures and the app's "Scheduled Start" were not captured.
 
 ## 7. Capturing data
 
@@ -363,7 +401,7 @@ Kettle target temperature is still unknown. Capture from the Govee app before se
 - What is the `33 B2` value, where does the app get it, and is it required?
 - Which models and firmware versions require encryption? (H7135 firmware 1.00.30 does; H712C firmware 1.00.16 does not.)
 - Heater Auto mode parameters, and the `EE` event ids.
-- Heater and kettle commands; capture them with PacketLogger.
+- Kettle: editing presets, Scheduled Start, Celsius, keep-warm durations other than 60 minutes, and `AA 23`.
 - What is the `494E5445-…` service for?
 - Advertisement layouts for H5074, H5179 and other sensors, and negative temperatures.
 
