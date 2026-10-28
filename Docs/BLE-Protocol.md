@@ -175,23 +175,28 @@ Devices answer every command and query with a notification that echoes bytes 0�
 
 ### Encrypted sessions (H7135 heater)
 
-The H7135 heater does not use plaintext packets. From a PacketLogger capture of the Govee app on 2026-10-28. **Observed.**
+Some devices only accept encrypted frames. The H7135 heater is one; the H712C purifier is not. Under the encryption the frames are the ordinary 20-byte packets described above. **Verified**: every frame in a PacketLogger capture of the Govee app talking to the H7135 on 2026-10-28 decrypts to a packet with a valid checksum using this scheme.
 
-1. Immediately after connecting, before the app subscribes, the heater sends 20 random-looking bytes as a notification on `…2b10`. This is most likely a challenge.
-2. The app writes 20 bytes to `…2b11`, and the heater replies with 20 bytes on `…2b10`. Neither has visible structure.
-3. Every later packet in both directions has this layout:
+This scheme ("v1") was first published by community projects; see `SoloUnity/govee-ble-purifiers` (`crypto.py`) and `Fredde87/ha-govee-led-ble` in the [references](#9-references).
 
-```
-byte  0 … 15                16 17 18   19
-      [16-byte block]        87 53 32   [checksum]
-```
+**Frame transform.** A plaintext packet `P` (20 bytes, with its normal XOR checksum) is sent as:
 
-- Bytes 0–15 look like one block of a 128-bit block cipher (probably AES).
-- Bytes 16–18 were `87 53 32` for the whole session.
-- Byte 19 is consistent with the usual XOR checksum over bytes 0–18.
-- Within a session the same request always produces the same block, for example the app's repeated status poll and its reply. That suggests a fixed per-session key in ECB mode.
+- bytes 0–15: `AES-128-ECB(key, P[0…15])`
+- bytes 16–19: `P[16…19]` XOR the first 4 bytes of an RC4 keystream from the same `key`, with the RC4 state rebuilt for every frame.
 
-Without the key the commands cannot be read; timing alone shows the app's one-off writes when the user changed settings. This also explains why the heater ignored plaintext `0xAA` queries. The purifier, on the same day, used plaintext.
+Because bytes 16–18 of most packets are zero padding, the encrypted bytes 16–18 are the same for the whole session (`87 53 32` in our capture).
+
+**Handshake.** Before the first frame, the client negotiates a session key. Handshake frames are encrypted with a fixed 16-byte communication key that is built into the Govee app and published in the projects above.
+
+1. On connect, the heater sends an encrypted `AA 01` status notification on `…2b10` (with the communication key).
+2. Client → `…2b11`: `E7 01` + 17 random bytes.
+3. Device → `…2b10`: `E7 01` + 16-byte **session key** + 1 byte.
+4. Client → `…2b11`: `E7 02` + 17 random bytes. Device echoes an `E7 02` frame.
+5. All later frames in both directions use the session key. The app then sends the usual `33 B2` and `33 B5` session setup and starts polling.
+
+The session key is new for every connection and is never needed again after disconnecting. Never log it. No Govee account data is involved; anyone who can connect to the device can complete the handshake.
+
+A newer "v2" scheme (AES-GCM, selected by a version characteristic `…2b12`) is reported for some newer lights. None of our devices expose `…2b12`.
 
 Values longer than 17 bytes are requested with `AB 01 <item>` and returned as a sequence of notifications:
 
@@ -223,11 +228,12 @@ From our own queries on 2026-10-28 and the Govee app's queries in a PacketLogger
 | `AA 07 06` | `07 06` + 6 bytes | Bluetooth address, big endian: `E8 06 90 0C E7 8A`. |
 | `AA 07 11` | `07 11` + 6 bytes + `01 00 10 04 01` | Wi-Fi MAC address, big endian, then unknown bytes. |
 | `AA 07 10` | `07 10` + 6 bytes + `B7 1A 01 00 10 04 01` | Wi-Fi MAC address, little endian, then unknown bytes. |
-| `AA 16` | `16 01 00 00 17 3B 01` | Unknown; `17 3B` may be 23:59. **Observed.** |
+| `AA 16` | `16 01 00 00 17 3B 01` | Display on, likely with a schedule of 00:00–23:59 ("Always On" in the app). Matches the heater's `33 16` display command. **Observed.** |
 | `AA 19` | `19 00 FF FF 06 00 41` | Byte 7 likely filter life, `0x41` = 65 %. **Observed.** |
 | `AA 1B 01` | `1B 01 <on> <brightness>` | Night light: on/off and brightness (`0x32` = 50 %). |
 | `AA 1B 05` | `1B 05 0D <R> <G> <B>` | Night light color, `FF 8D 0B` (orange). `0D` unknown. |
-| `AA 04`, `08`, `0E`, `10`, `11`, `12`, `13`, `17`, `1F`, `23`, `26`, `07 20` | all `00` | Unsupported or empty. |
+| `AA 1F` | all `00` | Probably lock off (the heater uses `33 1F 02 <on>` for lock). **Observed.** |
+| `AA 04`, `08`, `0E`, `10`, `11`, `12`, `13`, `17`, `23`, `26`, `07 20` | all `00` | Unsupported or empty. |
 
 The app polls `AA 01`, `AA 05 00/01/03`, `AA 1B 01/05`, `AA 1E 01 02`, `AA 10`, `AA 08`, `AA 26`, `AA 16`, `AA 17`, `AA 19`, `AA 07 …` and `AA 1F` right after connecting.
 
@@ -242,7 +248,14 @@ The device also sends `AA 01` replies unprompted when the power state changes.
 
 ### H7135 heater
 
-Accepted all twelve queries above on `…2b11` and sent no replies. The heater only accepts encrypted packets after a handshake; see [encrypted sessions](#encrypted-sessions-h7135-heater).
+Ignores plaintext; queries must be encrypted after the [handshake](#encrypted-sessions-h7135-heater). Decrypted from the Govee app capture on 2026-10-28:
+
+| Request | Reply (bytes 1…) | Meaning |
+|---|---|---|
+| `AA 01` | `01 <power> 00 00 00 01 <t2> <t1> <t0> …` | Power, then the linked Bluetooth thermometer's reading in the [thermometer encoding](#22-thermometers-h5072-h5075-family): `03 B3 CF` = 24.26 °C, 63.9 %. Byte 12 was `01` while locked. |
+| `AA 06` | `06` + ASCII | Firmware version, `1.00.30`. |
+
+The heater also sends events with id `0xEE`: `EE AA 01` and `EE 19 05 <value>` (meaning unknown).
 
 ### H7173 kettle
 
@@ -305,7 +318,22 @@ The layouts below come from Govee lights and are implemented in `GoveeCommand` (
 
 ### Other appliances
 
-The H7135 heater's commands are encrypted (see [encrypted sessions](#encrypted-sessions-h7135-heater)); its app offers Low, Medium, High, Fan and Auto, plus Lock, Display and a linked Bluetooth thermometer. Kettle target temperature is still unknown. Capture from the Govee app before sending anything.
+### H7135 heater
+
+Sent [encrypted](#encrypted-sessions-h7135-heater). Decrypted from the Govee app capture on 2026-10-28; the device echoes each command. **Verified** against the user's recorded actions.
+
+| Action | Packet (bytes 0…) | Notes |
+|---|---|---|
+| Power on / off | `33 01 01` / `33 01 00` | |
+| Low / Medium / High | `3A 05 01 01` / `02` / `03` | Mode `01` (manual heat), level 1–3 |
+| Fan only | `3A 05 09 00` | Mode `09` |
+| Auto | `3A 05 03 00 80 19 C8` | Mode `03`. `19 C8` = 6600, possibly a target of 66.00 °F; `80` unknown. Reply: `3A 05 03 00 86 19 C8 1E DC 1C E8` (unknown). **Observed.** |
+| Display on / off | `33 16 01 FF FF FF FF` / `33 16 00 FF FF FF FF` | `FF FF FF FF` likely means no schedule. The purifier's `AA 16` reply `16 01 00 00 17 3B` suggests a schedule of 00:00–23:59. |
+| Lock on / off | `33 1F 02 01` / `33 1F 02 00` | |
+
+### Other appliances
+
+Kettle target temperature is still unknown. Capture from the Govee app before sending anything.
 
 ## 7. Capturing data
 
@@ -325,7 +353,8 @@ The H7135 heater's commands are encrypted (see [encrypted sessions](#encrypted-s
 - What are the purifier's `AA 01` bytes 5–7 (`FF FF 06`), `AA 05 03`, `AA 16` and `AA 19`? Is `AA 19` byte 7 really filter life?
 - Purifier mode values `02`, `03`, `04`, `06` (auto?), power on, night light off, brightness and color commands.
 - What is the `33 B2` value, where does the app get it, and is it required?
-- How is the heater's session key derived from the handshake, and which devices and firmware versions use encryption? What is the `87 53 32` trailer?
+- Which models and firmware versions require encryption? (H7135 firmware 1.00.30 does; H712C firmware 1.00.16 does not.)
+- Heater Auto mode parameters, and the `EE` event ids.
 - Heater and kettle commands; capture them with PacketLogger.
 - What is the `494E5445-…` service for?
 - Advertisement layouts for H5074, H5179 and other sensors, and negative temperatures.
@@ -338,4 +367,7 @@ The H7135 heater's commands are encrypted (see [encrypted sessions](#encrypted-s
 - `ConsciousCode/govee_h7015`
 - Home Assistant forum, "Govee H617A BLE LED Strip Lights Reverse Engineering"
 - PyPI `govee-ble`
+- `SoloUnity/govee-ble-purifiers`, Home Assistant integration for Govee purifiers; v1 encryption in `custom_components/govee_ble_air_purifier/crypto.py`
+- `Fredde87/ha-govee-led-ble`, v1 and v2 encryption for lights
+- `jnstockley/ha-govee-ble-devices` and `jnstockley/govee_ble_client`, purifiers and fans
 - Bluetooth SIG Assigned Numbers; Matter specification (BLE commissioning service `FFF6`)
