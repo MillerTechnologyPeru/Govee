@@ -30,6 +30,9 @@ public enum GoveeModel: String, Codable, CaseIterable, Sendable {
     case h5185 = "H5185"
     case h5198 = "H5198"
     
+    /// Govee Smart Air Purifier
+    case h712C = "H712C"
+
     /// Govee Smart Space Heater
     case h7130 = "H7130"
     
