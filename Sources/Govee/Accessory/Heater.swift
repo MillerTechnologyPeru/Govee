@@ -18,7 +18,10 @@ public extension GoveeAccessory {
         public let id: GoveeAdvertisementName
         
         internal let manufacturerData: ManufacturerData
-        
+
+        /// Whether the heater is powered on.
+        ///
+        /// The advertisement does not include the mode, so this is `true` in fan only mode as well as heating.
         public var isActive: Bool {
             manufacturerData.isActive
         }
