@@ -173,7 +173,25 @@ byte  0       1 … 18             19
 
 Devices answer every command and query with a notification that echoes bytes 0–1 (and for `0x3A` usually the whole request), so a client can match replies to requests.
 
-### Multi-packet replies (`0xAB`)
+### Encrypted sessions (H7135 heater)
+
+The H7135 heater does not use plaintext packets. From a PacketLogger capture of the Govee app on 2026-10-28. **Observed.**
+
+1. Immediately after connecting, before the app subscribes, the heater sends 20 random-looking bytes as a notification on `…2b10`. This is most likely a challenge.
+2. The app writes 20 bytes to `…2b11`, and the heater replies with 20 bytes on `…2b10`. Neither has visible structure.
+3. Every later packet in both directions has this layout:
+
+```
+byte  0 … 15                16 17 18   19
+      [16-byte block]        87 53 32   [checksum]
+```
+
+- Bytes 0–15 look like one block of a 128-bit block cipher (probably AES).
+- Bytes 16–18 were `87 53 32` for the whole session.
+- Byte 19 is consistent with the usual XOR checksum over bytes 0–18.
+- Within a session the same request always produces the same block, for example the app's repeated status poll and its reply. That suggests a fixed per-session key in ECB mode.
+
+Without the key the commands cannot be read; timing alone shows the app's one-off writes when the user changed settings. This also explains why the heater ignored plaintext `0xAA` queries. The purifier, on the same day, used plaintext.
 
 Values longer than 17 bytes are requested with `AB 01 <item>` and returned as a sequence of notifications:
 
@@ -224,7 +242,7 @@ The device also sends `AA 01` replies unprompted when the power state changes.
 
 ### H7135 heater
 
-Accepted all twelve queries above on `…2b11` and sent no replies. We sent them without the session setup below, which the Govee app always sends first; that is the most likely reason.
+Accepted all twelve queries above on `…2b11` and sent no replies. The heater only accepts encrypted packets after a handshake; see [encrypted sessions](#encrypted-sessions-h7135-heater).
 
 ### H7173 kettle
 
@@ -241,7 +259,7 @@ Right after connecting and subscribing to `…2b10`, the Govee app sends two `0x
 | `33 B2 <8 bytes>` | Unknown 8-byte value, likely a per-device key from the user's Govee account. The device replies `33 B2` with zeros. **Treat as a secret; do not publish captured values.** |
 | `33 B5 <unix time, 4 bytes big endian> 01 <UTC offset hours, signed>` | Set clock. `33 B5 6A E2 6B 0C 01 FC` = 2026-10-28 21:37:16 UTC, offset −4 h. Resent roughly every 15 seconds while connected. Byte 6 (`01`) unknown. |
 
-Whether the purifier requires `33 B2` is unknown: it answered our status queries without it. The heater did not.
+Whether the purifier requires `33 B2` is unknown: it answered our status queries without it. The heater uses a different, encrypted handshake instead.
 
 ### Power
 
@@ -287,7 +305,7 @@ The layouts below come from Govee lights and are implemented in `GoveeCommand` (
 
 ### Other appliances
 
-Heater mode and heat level, and kettle target temperature, are still unknown. Capture them from the Govee app before sending anything.
+The H7135 heater's commands are encrypted (see [encrypted sessions](#encrypted-sessions-h7135-heater)); its app offers Low, Medium, High, Fan and Auto, plus Lock, Display and a linked Bluetooth thermometer. Kettle target temperature is still unknown. Capture from the Govee app before sending anything.
 
 ## 7. Capturing data
 
@@ -306,7 +324,8 @@ Heater mode and heat level, and kettle target temperature, are still unknown. Ca
 - What is the `0x40` bit in company identifier `0x8843`, and what are advertisement bytes 2 and 3?
 - What are the purifier's `AA 01` bytes 5–7 (`FF FF 06`), `AA 05 03`, `AA 16` and `AA 19`? Is `AA 19` byte 7 really filter life?
 - Purifier mode values `02`, `03`, `04`, `06` (auto?), power on, night light off, brightness and color commands.
-- What is the `33 B2` value, where does the app get it, and is it required? Does the heater answer once it is sent?
+- What is the `33 B2` value, where does the app get it, and is it required?
+- How is the heater's session key derived from the handshake, and which devices and firmware versions use encryption? What is the `87 53 32` trailer?
 - Heater and kettle commands; capture them with PacketLogger.
 - What is the `494E5445-…` service for?
 - Advertisement layouts for H5074, H5179 and other sensors, and negative temperatures.
