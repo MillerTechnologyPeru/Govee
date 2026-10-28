@@ -9,6 +9,7 @@ public enum GoveeAccessory: Equatable, Hashable, Sendable {
     case heater(Heater)
     case kettle(Kettle)
     case riceCooker(RiceCooker)
+    case airPurifier(AirPurifier)
 }
 
 // MARK: - Identifiable
@@ -24,6 +25,8 @@ extension GoveeAccessory: Identifiable {
         case .kettle(let value):
             return value.id
         case .riceCooker(let value):
+            return value.id
+        case .airPurifier(let value):
             return value.id
         }
     }
@@ -82,6 +85,12 @@ public extension GoveeAccessory {
                 return nil
             }
             self = .riceCooker(value)
+        case .airPurifier:
+            guard let manufacturerData = GoveeAccessory.AirPurifier.ManufacturerData(manufacturerData),
+                let value = GoveeAccessory.AirPurifier(name: name, manufacturerData: manufacturerData) else {
+                return nil
+            }
+            self = .airPurifier(value)
         case .iceMaker,
             .lighting,
             .smartPlug,
