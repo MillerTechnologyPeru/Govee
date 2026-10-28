@@ -109,6 +109,18 @@ public extension GoveePacket.ID {
 
     /// Multi-packet scene data
     static var multiPacket: GoveePacket.ID { GoveePacket.ID(rawValue: 0xA3) }
+
+    /// Appliance command
+    static var applianceCommand: GoveePacket.ID { GoveePacket.ID(rawValue: 0x3A) }
+
+    /// Multi-packet query for long values
+    static var multiPacketQuery: GoveePacket.ID { GoveePacket.ID(rawValue: 0xAB) }
+
+    /// Unsolicited event
+    static var event: GoveePacket.ID { GoveePacket.ID(rawValue: 0xEE) }
+
+    /// Encrypted session negotiation
+    static var negotiation: GoveePacket.ID { GoveePacket.ID(rawValue: 0xE7) }
 }
 
 extension GoveePacket.ID: CustomStringConvertible {
