@@ -294,9 +294,19 @@ Appliance commands use packet id `0x3A`. The device echoes the full request. **V
 | High | `3A 05 01 03` | Speed 3 |
 | Sleeping | `3A 05 05 00` | Mode `05` |
 | Turbo | `3A 05 07 00` | Mode `07` |
-| Night light on | `3A 1B 01 01 01` | Reply `3A 1B 01 01 32`: on, brightness 50 % |
+| Night light on / off | `3A 1B 01 01 <01/00>` | Reply `3A 1B 01 <on> <brightness>` |
+| Night light brightness | `3A 1B 01 02 <percent>` | `64` = 100 %, `0A` = 10 %. Reply `3A 1B 01 01 <percent>` |
+| Night light color | `3A 1B 05 0D <R> <G> <B>` | Red `FF 00 00`, green `00 FF 00`, blue `00 00 FF`. `0D` unknown, constant. Device echoes the request. |
+| Display | `33 16 <on> <start h> <start m> <end h> <end m> <always>` | Off: `33 16 00 00 00 17 3B 01`. Always on: `33 16 01 00 00 17 3B 01`. Scheduled: last byte `00`, with the window 00:00–23:59 (`00 00 17 3B`) in our capture. Reply `33 16` with zeros. |
+| Timer | `33 26 01 <minutes, 2 bytes BE> <seconds, 3 bytes BE>` | 1 hour: `33 26 01 00 3C 00 0E 10` (60 min, 3600 s). Cancel not captured. **Observed.** |
+| Power off | `33 01 00` | |
+| Power on | `33 01 01` (expected) | Not seen over BLE: the app turned the purifier on while the trace showed no write, so it most likely used Wi-Fi. Same as the heater's verified command. |
 
-Mode values: `01` manual, `05` sleep, `07` turbo. Values `02`, `03`, `04` and `06` were not seen; `AA 05 03` suggests `03` may be auto.
+Mode values: `01` manual, `05` sleep, `07` turbo. Values `02`, `03`, `04` and `06` were not seen. The app did not send an Auto command; the H712C has no PM2.5 sensor and is reported to need a paired H5106 sensor for Auto.
+
+Status notifications `EE AA 00` arrive after each change, with no other content. **Observed.**
+
+The Govee app sends some commands over Wi-Fi instead of BLE when the device is online, so a BLE capture may be missing actions. Note the time of each action and check that each appears.
 
 Full exchange for Low:
 
@@ -315,8 +325,6 @@ The layouts below come from Govee lights and are implemented in `GoveeCommand` (
 | Brightness | `04 <value>` | |
 | Color | `05 02 <R> <G> <B>` | Manual mode |
 | White | `05 02 FF FF FF 01 <R> <G> <B>` | White with tint |
-
-### Other appliances
 
 ### H7135 heater
 
@@ -351,7 +359,7 @@ Kettle target temperature is still unknown. Capture from the Govee app before se
 
 - What is the `0x40` bit in company identifier `0x8843`, and what are advertisement bytes 2 and 3?
 - What are the purifier's `AA 01` bytes 5–7 (`FF FF 06`), `AA 05 03`, `AA 16` and `AA 19`? Is `AA 19` byte 7 really filter life?
-- Purifier mode values `02`, `03`, `04`, `06` (auto?), power on, night light off, brightness and color commands.
+- Purifier mode values `02`, `03`, `04`, `06` and Auto (needs a paired sensor); power on over BLE; timer cancel; display schedule with other times; the night light color byte `0D`.
 - What is the `33 B2` value, where does the app get it, and is it required?
 - Which models and firmware versions require encryption? (H7135 firmware 1.00.30 does; H712C firmware 1.00.16 does not.)
 - Heater Auto mode parameters, and the `EE` event ids.
