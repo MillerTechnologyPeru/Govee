@@ -11,9 +11,9 @@ import XCTest
 
 /// Packets captured from the Govee app with PacketLogger on 2026-10-28.
 ///
-/// H712C purifier traffic is plaintext. H7135 heater and H7173 kettle traffic was
+/// H712C purifier traffic is plaintext. H7135 heater, H7173 kettle and H5072 thermometer traffic was
 /// decrypted (v1 scheme, see Docs/BLE-Protocol.md); the vectors below are the plaintext frames.
-/// Session setup (`33 B2`) and multi-packet tokens are intentionally not included.
+/// Session setup (`33 B2`, `33 FE`) and multi-packet tokens are intentionally not included.
 final class CapturedPacketTests: XCTestCase {
 
     // MARK: - H712C Purifier
@@ -201,6 +201,88 @@ final class CapturedPacketTests: XCTestCase {
         let firmware = try packet("AA 06 31 2E 30 30 2E 32 34 00 00 00 00 00 00 00 00 00 00 9B")
         XCTAssertEqual(ascii(firmware.payload.dropFirst()), "1.00.24")
     }
+
+    // MARK: - H5072 Thermometer
+
+    func testThermometerPackets() {
+        // Govee app <-> GVH5072_CF9C, decrypted, matched to a screen recording of the app
+        let values: [(String, String)] = [
+            ("Set clock", "33 10 76 0A C8 01 00 00 00 00 00 00 00 00 00 00 00 00 00 96"),
+            ("Firmware", "AA 0E 31 2E 30 31 2E 30 34 00 00 00 00 00 00 00 00 00 00 90"),
+            ("Battery", "AA 08 25 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 87"),
+            ("Temperature alert", "AA 04 00 30 F8 70 17 00 00 00 00 00 00 00 00 00 00 00 00 01"),
+            ("Humidity alert", "AA 03 00 00 00 10 27 00 00 00 00 00 00 00 00 00 00 00 00 9E"),
+            ("Temperature alert on", "33 04 01 30 F8 70 17 00 00 00 00 00 00 00 00 00 00 00 00 99"),
+            ("Temperature alert off", "33 04 00 30 F8 70 17 00 00 00 00 00 00 00 00 00 00 00 00 98"),
+            ("Humidity alert on", "33 03 01 00 00 10 27 00 00 00 00 00 00 00 00 00 00 00 00 06"),
+            ("Humidity alert off", "33 03 00 00 00 10 27 00 00 00 00 00 00 00 00 00 00 00 00 07"),
+            ("Live reading", "AA 01 09 7E 18 ED 25 00 00 00 00 00 00 00 00 00 00 00 00 0C"),
+            ("History 299 minutes", "33 01 01 2B 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 18"),
+            ("History 1 minute", "33 01 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 33"),
+            ("History done", "EE 01 00 32 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 DD"),
+        ]
+        assertPackets(values)
+    }
+
+    func testThermometerClock() throws {
+        // 33 10 <minutes since 1970, little endian>
+        let clock = try packet("33 10 76 0A C8 01 00 00 00 00 00 00 00 00 00 00 00 00 00 96")
+        let minutes = littleEndian(clock.payload[1 ... 4])
+        let date = Date(timeIntervalSince1970: TimeInterval(minutes) * 60)
+        XCTAssertEqual(date, ISO8601DateFormatter().date(from: "2026-10-28T22:14:00Z"))
+    }
+
+    func testThermometerStatus() throws {
+        // Live reading, big endian: 24.30 °C, 63.81 %, battery 37 %, as shown in the app
+        let reading = try packet("AA 01 09 7E 18 ED 25 00 00 00 00 00 00 00 00 00 00 00 00 0C")
+        XCTAssertEqual(Int16(bitPattern: UInt16(bigEndian(reading.payload[1 ... 2]))), 2430)
+        XCTAssertEqual(bigEndian(reading.payload[3 ... 4]), 6381)
+        XCTAssertEqual(reading.payload[5], 37)
+
+        let battery = try packet("AA 08 25 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 87")
+        XCTAssertEqual(battery.payload[1], 37)
+
+        let firmware = try packet("AA 0E 31 2E 30 31 2E 30 34 00 00 00 00 00 00 00 00 00 00 90")
+        XCTAssertEqual(ascii(firmware.payload.dropFirst()), "1.01.04")
+
+        // Alerts, little endian: off, -20.00 to 60.00 °C and 0 to 100.00 %
+        let temperature = try packet("AA 04 00 30 F8 70 17 00 00 00 00 00 00 00 00 00 00 00 00 01")
+        XCTAssertEqual(temperature.payload[1], 0x00)
+        XCTAssertEqual(Int16(bitPattern: UInt16(littleEndian(temperature.payload[2 ... 3]))), -2000)
+        XCTAssertEqual(Int16(bitPattern: UInt16(littleEndian(temperature.payload[4 ... 5]))), 6000)
+
+        let humidity = try packet("AA 03 00 00 00 10 27 00 00 00 00 00 00 00 00 00 00 00 00 9E")
+        XCTAssertEqual(littleEndian(humidity.payload[2 ... 3]), 0)
+        XCTAssertEqual(littleEndian(humidity.payload[4 ... 5]), 10000)
+
+        // History request for the last 299 minutes, and completion after 50 frames
+        let request = try packet("33 01 01 2B 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 18")
+        XCTAssertEqual(bigEndian(request.payload[1 ... 2]), 299)
+        let done = try packet("EE 01 00 32 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 DD")
+        XCTAssertEqual(done.id, .event)
+        XCTAssertEqual(bigEndian(done.payload[1 ... 2]), 50)
+    }
+
+    func testThermometerHistory() {
+        // …2013 history frames, decrypted. 2-byte minutes back, then six 3-byte readings.
+        // These frames carry no checksum, so they are not `GoveePacket` values.
+        let first = bytes("01 2B 03 71 57 03 71 57 03 75 3F 03 75 40 03 75 3F 03 75 40")
+        XCTAssertEqual(bigEndian(first[0 ... 1]), 299)
+        let readings = historyReadings(first)
+        XCTAssertEqual(readings.count, 6)
+        // First reading 22.56 °C, 62.3 %; the app's hour chart minimum was 22.1 °C and maximum 22.6 °C
+        XCTAssertEqual(readings[0].temperature, 22.5623, accuracy: 0.0001)
+        XCTAssertEqual(readings[0].humidity, 62.3, accuracy: 0.01)
+        XCTAssertEqual(readings[2].temperature, 22.6623, accuracy: 0.0001) // 03 75 3F
+
+        // Last frame: one reading, rest padded with FF
+        let last = bytes("00 00 03 B7 B6 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF")
+        XCTAssertEqual(bigEndian(last[0 ... 1]), 0)
+        let latest = historyReadings(last)
+        XCTAssertEqual(latest.count, 1)
+        XCTAssertEqual(latest[0].temperature, 24.3638, accuracy: 0.0001)
+        XCTAssertEqual(latest[0].humidity, 63.8, accuracy: 0.01)
+    }
 }
 
 // MARK: - Helpers
@@ -234,6 +316,24 @@ private extension CapturedPacketTests {
 
     func bigEndian<C: Collection>(_ bytes: C) -> UInt32 where C.Element == UInt8 {
         bytes.reduce(0) { $0 << 8 | UInt32($1) }
+    }
+
+    func littleEndian<C: Collection>(_ bytes: C) -> UInt32 where C.Element == UInt8 {
+        bigEndian(bytes.reversed())
+    }
+
+    func bytes(_ hex: String) -> [UInt8] {
+        hex.split(separator: " ").compactMap { UInt8($0, radix: 16) }
+    }
+
+    /// Decodes the 3-byte readings in a thermometer history frame with the advertisement encoding.
+    func historyReadings(_ frame: [UInt8]) -> [(temperature: Float, humidity: Float)] {
+        stride(from: 2, to: frame.count, by: 3).compactMap { index in
+            let value = (frame[index], frame[index + 1], frame[index + 2])
+            guard value != (0xFF, 0xFF, 0xFF) else { return nil }
+            let encoded = GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperature(byteValue: value)
+            return (encoded.temperature, encoded.humidity)
+        }
     }
 
     func ascii<C: Collection>(_ bytes: C) -> String where C.Element == UInt8 {
