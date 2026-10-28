@@ -16,6 +16,7 @@ public enum GoveeAccessoryType: Equatable, Hashable, Sendable {
     case iceMaker
     case lighting
     case smartPlug
+    case airPurifier
 }
 
 public extension GoveeModel {
@@ -50,6 +51,8 @@ public extension GoveeModel {
             return .thermometer
         case .h5198:
             return .thermometer
+        case .h712C:
+            return .airPurifier
         case .h7130:
             return .heater
         case .h7131:
