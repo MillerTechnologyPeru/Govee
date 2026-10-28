@@ -228,4 +228,26 @@ final class KettleTests: XCTestCase {
         XCTAssertEqual(kettle.state, .idle)
         XCTAssertEqual(kettle.id.model, .h7175)
     }
+    
+    func testH7173NewerFirmwareAdvertisement() {
+        
+        // Captured 2026-10-28 with a CoreBluetooth scan on macOS, heating
+        // GVH71732ADB | mfr 43 88 EC 00 02 01 01 00 01 00 00 00 00
+        // Same kettle as the captures above, now with company identifier 0x8843
+        guard let manufacturerData = GATT.ManufacturerSpecificData<Data>(data: Data([0x43, 0x88, 0xEC, 0x00, 0x02, 0x01, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00])) else {
+            XCTFail()
+            return
+        }
+        XCTAssertEqual(manufacturerData.companyIdentifier, 0x8843)
+        XCTAssertEqual(manufacturerData.additionalData.count, 11)
+        
+        guard let kettle = GoveeAccessory.Kettle(name: "GVH71732ADB", manufacturerData: manufacturerData) else {
+            XCTFail()
+            return
+        }
+        XCTAssertEqual(kettle.id.model, .h7173)
+        XCTAssert(kettle.isActive)
+        XCTAssertEqual(kettle.state, .heating)
+        XCTAssertEqual(GoveeAccessory(name: "GVH71732ADB", manufacturerData: manufacturerData), .kettle(kettle))
+    }
 }
