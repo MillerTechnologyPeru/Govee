@@ -130,23 +130,30 @@ Company `0x8802`, same 6-byte layout as appliances; byte 4 is cooking on or off.
 
 ## 3. GATT services
 
-Read-only survey of the H712C purifier, H7173 kettle and H7135 heater on 2026-10-28. **Observed.**
+Read-only survey of the H712C purifier, H7173 kettle and H7135 heater on 2026-10-28, plus the H5072 thermometer's attribute discovery from a Govee app capture the same day. **Observed.**
 
-| Service | Characteristic | Properties | Purifier | Kettle | Heater |
-|---|---|---|---|---|---|
-| `00010203-0405-0607-0809-0a0b0c0d1910` (control) | `…2b10` | read, notify | ✓ | ✓ | ✓ |
-| | `…2b11` | write without response (purifier also write) | ✓ | ✓ | ✓ |
-| `494E5445-4C4C-495F-524F-434B535F4857` | `…2014` | read, write, notify | ✓ | — | ✓ |
-| | `…2015` | read, notify | ✓ | — | ✓ |
-| `FFF6` (Matter commissioning) | `18EE2EF5-263D-4559-959F-4F9C429F9D11` | write | ✓ | — | — |
-| | `18EE2EF5-263D-4559-959F-4F9C429F9D12` | read, indicate | ✓ | — | — |
+| Service | Characteristic | Properties | Purifier | Kettle | Heater | Thermometer |
+|---|---|---|---|---|---|---|
+| `00010203-0405-0607-0809-0a0b0c0d1910` (control) | `…2b10` | read, notify | ✓ | ✓ | ✓ | ✓ |
+| | `…2b11` | write without response (purifier and thermometer also write) | ✓ | ✓ | ✓ | ✓ |
+| | `…2b12` | read, write | — | — | — | ✓ |
+| `00010203-0405-0607-0809-0a0b0c0d1912` | `…2b12` | read, write without response | — | — | — | ✓ |
+| `494E5445-4C4C-495F-524F-434B535F4857` | `…2011` | read, write, notify | — | — | — | ✓ |
+| | `…2012` | read, write, notify | — | — | — | ✓ |
+| | `…2013` | read, notify | — | — | — | ✓ |
+| | `…2014` | read, write, notify | ✓ | — | ✓ | — |
+| | `…2015` | read, notify | ✓ | — | ✓ | — |
+| `FFF6` (Matter commissioning) | `18EE2EF5-263D-4559-959F-4F9C429F9D11` | write | ✓ | — | — | — |
+| | `18EE2EF5-263D-4559-959F-4F9C429F9D12` | read, indicate | ✓ | — | — | — |
+| `180A` (device information) | | | — | — | — | ✓ |
 
 Notes:
 
 - **Control service.** The same service and characteristics are documented for Govee lights. Commands are written to `…2b11` and replies arrive as notifications on `…2b10`. Some lights (H615B) are reported to write to `…2b10` instead. **Community.**
 - **`494E5445-…4857`** is ASCII for `INTELLI_ROCKS_HW` (Shenzhen Intellirocks is Govee's parent company). The same UUID is the iBeacon UUID in thermometer advertisements and is exposed in this library as `UUID.goveeThermostat`. On the heater both characteristics carry the user description `for gatt Read`. Purpose unknown.
 - **`FFF6`** is the standard Matter BLE commissioning service. CoreBluetooth refuses to read or subscribe to it from ordinary apps.
-- No device information (`180A`) or battery (`180F`) service is exposed.
+- **Thermometer.** The H5072 only uses the control service for the encrypted handshake. All later traffic goes to the `494E5445-…` service: `…2011` for setup and settings, `…2012` for live readings and history requests, and `…2013` for the history stream. See [H5072 thermometer](#h5072-thermometer).
+- The appliances expose no device information (`180A`) or battery (`180F`) service. The thermometer exposes `180A`, not yet read.
 - Devices mostly answer requests. The purifier also sends an `AA 01` status notification on its own when its power state changes.
 - On the kettle and heater, reading `…2b10` and `…2b11` directly is not permitted; use notifications.
 
@@ -175,7 +182,7 @@ Devices answer every command and query with a notification that echoes bytes 0�
 
 ### Encrypted sessions (H7135 heater)
 
-Some devices only accept encrypted frames. The H7135 heater (firmware 1.00.30) and H7173 kettle (firmware 1.00.24) are two; the H712C purifier (1.00.16) is not. Under the encryption the frames are the ordinary 20-byte packets described above. **Verified**: every frame in PacketLogger captures of the Govee app talking to the H7135 and the H7173 on 2026-10-28 decrypts to a packet with a valid checksum using this scheme.
+Some devices only accept encrypted frames: the H7135 heater (firmware 1.00.30), the H7173 kettle (firmware 1.00.24) and the H5072 thermometer (`1.01.04`). The H712C purifier (1.00.16) does not. Under the encryption the frames are the ordinary 20-byte packets described above. **Verified**: every frame in PacketLogger captures of the Govee app talking to the H7135, H7173 and H5072 on 2026-10-28 decrypts to a valid packet using this scheme. The thermometer's history frames carry 20 bytes of data and no checksum, so they are checked by their content instead.
 
 This scheme ("v1") was first published by community projects; see `SoloUnity/govee-ble-purifiers` (`crypto.py`) and `Fredde87/ha-govee-led-ble` in the [references](#9-references).
 
@@ -196,7 +203,7 @@ Because bytes 16–18 of most packets are zero padding, the encrypted bytes 16�
 
 The session key is new for every connection and is never needed again after disconnecting. Never log it. No Govee account data is involved; anyone who can connect to the device can complete the handshake.
 
-A newer "v2" scheme (AES-GCM, selected by a version characteristic `…2b12`) is reported for some newer lights. None of our devices expose `…2b12`.
+A newer "v2" scheme (AES-GCM, selected by a version characteristic `…2b12`) is reported for some newer lights. Of our devices only the H5072 thermometer exposes `…2b12`. The app read `02 01 00 00 02 01` from it and then used the v1 scheme, so a `02` there does not by itself mean AES-GCM.
 
 Values longer than 17 bytes are requested with `AB 01 <item>` and returned as a sequence of notifications:
 
@@ -381,6 +388,45 @@ Sent [encrypted](#encrypted-sessions-h7135-heater). Decrypted from the Govee app
 
 Choosing a preset or a target does not start heating; the app sends `33 01 01` separately. Commands to edit preset temperatures and the app's "Scheduled Start" were not captured.
 
+### H5072 thermometer
+
+The thermometer also accepts connections. It is [encrypted](#encrypted-sessions-h7135-heater); the handshake runs on the control service, then all traffic uses the `494E5445-…` service. Decrypted from a Govee app capture of `GVH5072_CF9C` on 2026-10-28 and matched to a screen recording of the app. **Verified** unless marked.
+
+Values are little endian here, unlike the appliances. Temperatures are °C × 100 as signed 16-bit integers; humidity is % × 100.
+
+**Setup** (`…2011`):
+
+| Request | Reply (bytes 1…) | Meaning |
+|---|---|---|
+| `33 FE` + 16 ASCII characters | `FE` | Key-like value, like the appliances' `33 B2`. **Treat as a secret.** |
+| `33 10 <minutes since 1970, 4 bytes LE>` | `10` | Set clock. `33 10 76 0A C8 01` = 2026-10-28 22:14 UTC. |
+| `AA 0E` | `0E` + ASCII | `1.01.04`, probably firmware |
+| `AA 0D` | `0D` + ASCII | `1.00.01`, probably hardware |
+| `AA 08` | `08 <battery>` | Battery percent, `25` = 37 % |
+| `AA 04` | `04 <on> <low> <high>` | Temperature alert: `04 00 30 F8 70 17` = off, −20.00 to 60.00 °C |
+| `AA 03` | `03 <on> <low> <high>` | Humidity alert: `03 00 00 00 10 27` = off, 0 to 100.00 % |
+| `33 04 <on> <low> <high>` | `04` | Set the temperature alert. `33 04 01 30 F8 70 17` = on, −20 to 60 °C. |
+| `33 03 <on> <low> <high>` | `03` | Set the humidity alert. `33 03 01 00 00 10 27` = on, 0 to 100 %. |
+| `AA 02`, `AA 06`, `AA 07` | all `00` | Unknown or empty; `AA 02` may be calibration. **Observed.** |
+
+**Live reading** (`…2012`): `AA 01` → `01 <temperature BE> <humidity BE> <battery>`. Unlike the setup values these two are big endian: `AA 01 09 7E 18 ED 25` = 24.30 °C, 63.81 %, battery 37 %. The app polls it every 3 seconds.
+
+**History** (`…2012` requests, `…2013` data):
+
+1. The app sends `33 02 00` (meaning unknown; once `33 02 01`), then `33 01 <start, 2 bytes BE>`, where start is the number of minutes back. `33 01 01 2B` asks for the last 299 minutes; `33 01 00 01` for the last minute.
+2. The device streams 20-byte frames on `…2013`, newest last:
+
+```
+byte  0 1          2 3 4    5 6 7    …    17 18 19
+      [minutes back] [reading 1] [reading 2] … [reading 6]
+```
+
+Each reading is one minute, 3 bytes in the [thermometer advertisement encoding](#22-thermometers-h5072-h5075-family) (`03 71 57` = 22.56 °C, 62.3 %). The index counts down by 6 per frame. Unused readings at the end are `FF FF FF`. These frames carry no checksum.
+
+3. When done the device sends `EE 01 <frame count, 2 bytes BE>` on `…2012`: `EE 01 00 32` after 50 frames.
+
+`33 01 33 78 33 13` was also sent and returned no frames (`EE 01 00 00`); its meaning is unknown.
+
 ## 7. Capturing data
 
 - **Advertisements.** On macOS, a CoreBluetooth command-line tool needs an embedded `Info.plist` with `NSBluetoothAlwaysUsageDescription`, and it must run from an app that has Bluetooth permission, such as Terminal. Scan with duplicates allowed to see state changes.
@@ -402,6 +448,7 @@ Choosing a preset or a target does not start heating; the app sends `33 01 01` s
 - Which models and firmware versions require encryption? (H7135 firmware 1.00.30 does; H712C firmware 1.00.16 does not.)
 - Heater Auto mode parameters, and the `EE` event ids.
 - Kettle: editing presets, Scheduled Start, Celsius, keep-warm durations other than 60 minutes, and `AA 23`.
+- Thermometer: `33 02`, `33 01 33 78 33 13`, calibration (`AA 02`?), the °F/°C setting, Delete Data, and the `180A` service.
 - What is the `494E5445-…` service for?
 - Advertisement layouts for H5074, H5179 and other sensors, and negative temperatures.
 
