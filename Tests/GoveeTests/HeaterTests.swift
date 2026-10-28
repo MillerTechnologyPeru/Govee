@@ -192,4 +192,27 @@ final class HeaterTests: XCTestCase {
             XCTAssertFalse(heaterManufacturerData.isActive)
         }
     }
+    
+    func testH7135NewerFirmwareModes() {
+        
+        // Captured 2026-10-28 with a CoreBluetooth scan on macOS
+        // ihoment_H7135_9F73 | mfr 43 88 EC 00 02 01 01 00 (fan only)
+        // ihoment_H7135_9F73 | mfr 43 88 EC 00 02 01 01 00 (heat level 1)
+        // Fan and heat advertise identical data, so only power state can be decoded.
+        let values: [(mode: String, data: Data)] = [
+            ("fan", Data([0x43, 0x88, 0xEC, 0x00, 0x02, 0x01, 0x01, 0x00])),
+            ("heat 1", Data([0x43, 0x88, 0xEC, 0x00, 0x02, 0x01, 0x01, 0x00])),
+        ]
+        for (mode, data) in values {
+            guard let manufacturerData = GATT.ManufacturerSpecificData<Data>(data: data),
+                  let heater = GoveeAccessory.Heater(name: "ihoment_H7135_9F73", manufacturerData: manufacturerData) else {
+                XCTFail("Unable to decode \(mode)")
+                continue
+            }
+            XCTAssertEqual(manufacturerData.companyIdentifier, 0x8843)
+            XCTAssertEqual(heater.id.model, .h7135)
+            XCTAssert(heater.isActive, mode)
+            XCTAssertEqual(GoveeAccessory(name: "ihoment_H7135_9F73", manufacturerData: manufacturerData), .heater(heater))
+        }
+    }
 }

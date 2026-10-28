@@ -91,7 +91,7 @@ extension GoveeAdvertisementRow {
                 Text(verbatim: advertisement.id.rawValue)
                     .foregroundColor(.gray)
                     .font(.subheadline)
-                Text("Heating: \(advertisement.isActive)")
+                Text("Active: \(advertisement.isActive)")
                     .font(.subheadline)
             }
         }
