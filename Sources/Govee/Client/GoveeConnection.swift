@@ -135,12 +135,17 @@ internal extension GoveeConnection {
         // negotiate session key
         if security == .encrypted {
             key = .communication
-            let reply = try await send(GoveePacket.negotiation(.sessionKey), timeout: timeout)
-            guard let sessionKey = reply.sessionKey else {
+            do {
+                let reply = try await send(GoveePacket.negotiation(.sessionKey), timeout: timeout)
+                guard let sessionKey = reply.sessionKey else {
+                    throw GoveeConnectionError.handshakeFailed
+                }
+                try await send(GoveePacket.negotiation(.confirm), timeout: timeout)
+                key = sessionKey
+            }
+            catch GoveeConnectionError.timeout {
                 throw GoveeConnectionError.handshakeFailed
             }
-            try await send(GoveePacket.negotiation(.confirm), timeout: timeout)
-            key = sessionKey
         }
     }
 }
@@ -255,19 +260,29 @@ private extension GoveeConnection {
 public extension CentralManager where Self: Sendable, AttributeID: Sendable {
 
     /// Connects to a Govee device, discovers its characteristics and, if needed, negotiates an encrypted session.
+    ///
+    /// - Parameter connectTimeout: Time allowed to establish the Bluetooth connection.
+    /// Thermometers advertise slowly, so this is longer than the reply timeout.
+    /// - Parameter timeout: Time allowed for each reply during setup.
     func connect(
         to peripheral: Peripheral,
         model: GoveeModel,
         security: GoveeSecurity? = nil,
+        connectTimeout: TimeInterval = 15,
         timeout: TimeInterval = 5
     ) async throws -> GoveeConnection<Self> {
         // CoreBluetooth waits forever for a device that is not advertising
-        try await withTimeout(timeout) {
-            try await self.connect(to: peripheral)
-        } late: { result in
-            if case .success = result {
-                await self.disconnect(peripheral)
+        do {
+            try await withTimeout(connectTimeout) {
+                try await self.connect(to: peripheral)
+            } late: { result in
+                if case .success = result {
+                    await self.disconnect(peripheral)
+                }
             }
+        }
+        catch GoveeConnectionError.timeout {
+            throw GoveeConnectionError.connectionTimeout
         }
         let connection = GoveeConnection(
             central: self,
@@ -351,12 +366,34 @@ public enum GoveeConnectionError: Error, Equatable, Sendable {
     /// No reply within the timeout.
     case timeout
 
+    /// The Bluetooth connection was not established in time, usually because the device is out of range
+    /// or connected to another phone.
+    case connectionTimeout
+
     /// The connection was closed.
     case disconnected
 
     /// A required characteristic was not found.
     case characteristicNotFound(BluetoothUUID)
 
-    /// The device did not return a session key.
+    /// The encrypted session could not be set up.
     case handshakeFailed
+}
+
+extension GoveeConnectionError: CustomStringConvertible {
+
+    public var description: String {
+        switch self {
+        case .timeout:
+            return "No reply from the device"
+        case .connectionTimeout:
+            return "Could not connect; the device may be out of range or connected to another phone"
+        case .disconnected:
+            return "The device disconnected"
+        case let .characteristicNotFound(uuid):
+            return "Characteristic \(uuid) not found"
+        case .handshakeFailed:
+            return "Encrypted session setup failed"
+        }
+    }
 }
