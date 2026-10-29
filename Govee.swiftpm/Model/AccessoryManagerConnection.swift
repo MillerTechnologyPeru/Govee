@@ -64,11 +64,21 @@ public extension AccessoryManager {
         _ request: Request,
         to id: GoveeAccessory.ID
     ) async throws -> GoveePacket {
+        let reply = try await perform(on: id) {
+            try await $0.send(request)
+        }
+        log("\(id) \(request.packet) -> \(reply)")
+        return reply
+    }
+
+    /// Runs an operation on the connection to the device, connecting first if needed.
+    func perform<T: Sendable>(
+        on id: GoveeAccessory.ID,
+        _ operation: (GoveeConnection<NativeCentral>) async throws -> T
+    ) async throws -> T {
         let connection = try await connect(to: id)
         do {
-            let reply = try await connection.send(request)
-            log("\(id) \(request.packet) -> \(reply)")
-            return reply
+            return try await operation(connection)
         }
         catch GoveeConnectionError.disconnected {
             connectionClosed(id, connection)
@@ -203,5 +213,18 @@ public extension AccessoryManager {
         let reading = try await send(GoveeQuery.thermometerReading, to: id).thermometerReading
         let firmware = try await send(GoveeQuery.thermometerFirmwareVersion, to: id).thermometerFirmwareVersion
         return ThermometerStatus(reading: reading, firmwareVersion: firmware)
+    }
+
+    /// Downloads the readings stored on the thermometer for the last `minutes` minutes, oldest first.
+    func thermometerHistory(
+        _ id: GoveeAccessory.ID,
+        minutes: UInt16
+    ) async throws -> [GoveeAccessory.Thermometer.HistoryReading] {
+        log("\(id) downloading \(minutes) minutes of history")
+        let history = try await perform(on: id) {
+            try await $0.thermometerHistory(minutes: minutes)
+        }
+        log("\(id) downloaded \(history.count) readings")
+        return history
     }
 }
