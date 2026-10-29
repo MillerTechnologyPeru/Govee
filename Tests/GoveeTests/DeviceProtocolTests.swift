@@ -116,6 +116,30 @@ final class DeviceProtocolTests: XCTestCase {
         XCTAssertEqual(try packet("AA 0E 31 2E 30 31 2E 30 34 00 00 00 00 00 00 00 00 00 00 90").thermometerFirmwareVersion, "1.01.04")
     }
 
+    func testThermometerHistory() {
+        // Commands the Govee app sent before streaming the last 299 minutes
+        typealias Command = GoveeAccessory.Thermometer.Command
+        XCTAssertEqual(Command.prepareHistory.channel, .data)
+        XCTAssertEqual(Command.prepareHistory.packet.bytes, bytes("33 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 31"))
+        XCTAssertEqual(Command.history(minutes: 299).packet.bytes, bytes("33 01 01 2B 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 18"))
+        XCTAssertEqual(Command.history(minutes: 1).packet.bytes, bytes("33 01 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 33"))
+
+        // First frame: minutes 299 to 294
+        let first = GoveeAccessory.Thermometer.HistoryReading.decode(frame: bytes("01 2B 03 71 57 03 71 57 03 75 3F 03 75 40 03 75 3F 03 75 40"))
+        XCTAssertEqual(first.map { $0.minutesAgo }, [299, 298, 297, 296, 295, 294])
+        XCTAssertEqual(first[0].temperature, 22.5623, accuracy: 0.0001)
+        XCTAssertEqual(first[0].humidity, 62.3, accuracy: 0.01)
+
+        // Last frame: one reading, padded with FF
+        let last = GoveeAccessory.Thermometer.HistoryReading.decode(frame: bytes("00 00 03 B7 B6 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"))
+        XCTAssertEqual(last.count, 1)
+        XCTAssertEqual(last[0].minutesAgo, 0)
+        XCTAssertEqual(last[0].humidity, 63.8, accuracy: 0.01)
+
+        // Wrong length
+        XCTAssertEqual(GoveeAccessory.Thermometer.HistoryReading.decode(frame: [0x00, 0x00]), [])
+    }
+
     func testChannels() {
         XCTAssertEqual(GoveeChannel.control.write.rawValue.uppercased(), "00010203-0405-0607-0809-0A0B0C0D2B11")
         XCTAssertEqual(GoveeChannel.control.notify.rawValue.uppercased(), "00010203-0405-0607-0809-0A0B0C0D2B10")
