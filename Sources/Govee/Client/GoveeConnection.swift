@@ -56,6 +56,9 @@ public actor GoveeConnection<Central: CentralManager> where Central: Sendable, C
 
     private var queue: Task<Void, Never>?
 
+    /// Frames received during a ``download(_:timeout:)``.
+    private var download: Download?
+
     // MARK: - Initialization
 
     internal init(
@@ -81,13 +84,22 @@ public actor GoveeConnection<Central: CentralManager> where Central: Sendable, C
         _ request: Request,
         timeout: TimeInterval = 5
     ) async throws -> GoveePacket {
-        let previous = queue
-        let task = Task<GoveePacket, Error> {
-            _ = await previous?.value
-            return try await perform(request, timeout: timeout)
+        try await enqueue {
+            try await self.perform(request, timeout: timeout)
         }
-        queue = Task { _ = await task.result }
-        return try await task.value
+    }
+
+    /// Sends a request, then collects the decrypted frames the device streams on the history characteristic
+    /// (`…2013`) until it sends an `EE 01` event.
+    ///
+    /// - Parameter timeout: Time allowed for the reply, and between frames.
+    public func download<Request: GoveeRequest>(
+        _ request: Request,
+        timeout: TimeInterval = 5
+    ) async throws -> [[UInt8]] {
+        try await enqueue {
+            try await self.performDownload(request, timeout: timeout)
+        }
     }
 
     /// Closes the connection.
@@ -102,6 +114,7 @@ public actor GoveeConnection<Central: CentralManager> where Central: Sendable, C
             self.pending = nil
             pending.continuation.resume(throwing: GoveeConnectionError.disconnected)
         }
+        finishDownload(.failure(GoveeConnectionError.disconnected))
         eventsContinuation.finish()
         await central.disconnect(peripheral)
     }
@@ -124,7 +137,7 @@ internal extension GoveeConnection {
             throw GoveeConnectionError.characteristicNotFound(.goveeControlWrite)
         }
         // subscribe
-        let notify = Set(GoveeChannel.allCases.map { $0.notify })
+        let notify = Set(GoveeChannel.allCases.map { $0.notify } + [.goveeHistory])
         for uuid in notify {
             guard let characteristic = characteristics[uuid],
                   characteristic.properties.contains(.notify) else {
@@ -163,13 +176,101 @@ private extension GoveeConnection {
         let continuation: CheckedContinuation<GoveePacket, Error>
     }
 
+    struct Download {
+
+        let id: UInt64
+
+        var frames = [[UInt8]]()
+
+        /// Frame count from the device's `EE 01` event. Frames and the event arrive on different
+        /// characteristics, so the event can be handled before the last frames.
+        var expected: Int?
+
+        /// Set once the download is waiting for the device to finish.
+        var continuation: CheckedContinuation<[[UInt8]], Error>?
+
+        /// Set if the device finished before the continuation was set.
+        var result: Result<[[UInt8]], Error>?
+    }
+
+    /// Runs operations one at a time, in order.
+    func enqueue<T: Sendable>(_ operation: @escaping @Sendable () async throws -> T) async throws -> T {
+        let previous = queue
+        let task = Task<T, Error> {
+            _ = await previous?.value
+            return try await operation()
+        }
+        queue = Task { _ = await task.result }
+        return try await task.value
+    }
+
+    func performDownload<Request: GoveeRequest>(
+        _ request: Request,
+        timeout: TimeInterval
+    ) async throws -> [[UInt8]] {
+        requestCount += 1
+        let id = requestCount
+        download = Download(id: id)
+        do {
+            _ = try await perform(request, timeout: timeout)
+        }
+        catch {
+            download = nil
+            throw error
+        }
+        Task { await self.watchDownload(id, timeout: timeout) }
+        return try await withCheckedThrowingContinuation { continuation in
+            guard var download, download.id == id else {
+                continuation.resume(throwing: GoveeConnectionError.disconnected)
+                return
+            }
+            if let result = download.result {
+                self.download = nil
+                continuation.resume(with: result)
+            } else {
+                download.continuation = continuation
+                self.download = download
+            }
+        }
+    }
+
+    /// Fails the download if no frame arrives within the timeout.
+    func watchDownload(_ id: UInt64, timeout: TimeInterval) async {
+        var count = -1
+        while let download, download.id == id, download.result == nil, download.frames.count != count {
+            count = download.frames.count
+            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+        }
+        guard let download, download.id == id else {
+            return
+        }
+        if download.expected != nil {
+            finishDownload(.success(download.frames)) // finished, but frames went missing
+        } else {
+            finishDownload(.failure(GoveeConnectionError.timeout))
+        }
+    }
+
+    func finishDownload(_ result: Result<[[UInt8]], Error>) {
+        guard var download, download.result == nil else {
+            return
+        }
+        if let continuation = download.continuation {
+            self.download = nil
+            continuation.resume(with: result)
+        } else {
+            download.result = result
+            self.download = download
+        }
+    }
+
     func subscribe(_ characteristic: Characteristic) async throws {
         let stream = try await central.notify(for: characteristic)
         notifications.append(stream)
         let task = Task { [weak self] in
             do {
                 for try await data in stream {
-                    await self?.receive(Array(data))
+                    await self?.receive(Array(data), from: characteristic.uuid)
                 }
             }
             catch { }
@@ -191,6 +292,7 @@ private extension GoveeConnection {
             self.pending = nil
             pending.continuation.resume(throwing: GoveeConnectionError.disconnected)
         }
+        finishDownload(.failure(GoveeConnectionError.disconnected))
         eventsContinuation.finish()
     }
 
@@ -236,7 +338,19 @@ private extension GoveeConnection {
         pending.continuation.resume(throwing: error)
     }
 
-    func receive(_ bytes: [UInt8]) {
+    func receive(_ bytes: [UInt8], from characteristic: BluetoothUUID) {
+        // history frames have no checksum
+        if characteristic == .goveeHistory {
+            guard download != nil else {
+                return
+            }
+            let frame = key.flatMap { $0.decrypt(bytes) } ?? bytes
+            download?.frames.append(frame)
+            if let download, let expected = download.expected, download.frames.count >= expected {
+                finishDownload(.success(download.frames))
+            }
+            return
+        }
         let packet: GoveePacket?
         if let key {
             packet = GoveePacket(encrypted: bytes, key: key)
@@ -249,6 +363,14 @@ private extension GoveeConnection {
         if let pending, packet.isReply(to: pending.request) {
             self.pending = nil
             pending.continuation.resume(returning: packet)
+        } else if var download, download.result == nil, packet.id == .event, packet.payload[0] == 0x01 {
+            // EE 01 <frame count, 2 bytes BE>: download finished
+            let expected = Int(packet.payload[1]) << 8 | Int(packet.payload[2])
+            download.expected = expected
+            self.download = download
+            if download.frames.count >= expected {
+                finishDownload(.success(download.frames))
+            }
         } else {
             eventsContinuation.yield(packet)
         }
