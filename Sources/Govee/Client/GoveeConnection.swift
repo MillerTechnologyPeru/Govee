@@ -168,8 +168,25 @@ private extension GoveeConnection {
                 }
             }
             catch { }
+            // the stream ends when the device disconnects
+            await self?.connectionLost()
         }
         tasks.append(task)
+    }
+
+    /// Called when the device closed the connection.
+    func connectionLost() {
+        guard isConnected else {
+            return
+        }
+        isConnected = false
+        notifications.forEach { $0.stop() }
+        tasks.forEach { $0.cancel() }
+        if let pending {
+            self.pending = nil
+            pending.continuation.resume(throwing: GoveeConnectionError.disconnected)
+        }
+        eventsContinuation.finish()
     }
 
     func perform<Request: GoveeRequest>(
@@ -244,7 +261,14 @@ public extension CentralManager where Self: Sendable, AttributeID: Sendable {
         security: GoveeSecurity? = nil,
         timeout: TimeInterval = 5
     ) async throws -> GoveeConnection<Self> {
-        try await connect(to: peripheral)
+        // CoreBluetooth waits forever for a device that is not advertising
+        try await withTimeout(timeout) {
+            try await self.connect(to: peripheral)
+        } late: { result in
+            if case .success = result {
+                await self.disconnect(peripheral)
+            }
+        }
         let connection = GoveeConnection(
             central: self,
             peripheral: peripheral,
@@ -259,6 +283,63 @@ public extension CentralManager where Self: Sendable, AttributeID: Sendable {
             throw error
         }
         return connection
+    }
+}
+
+// MARK: - Timeout
+
+/// Runs the operation, throwing ``GoveeConnectionError/timeout`` if it does not finish in time.
+///
+/// The operation keeps running after a timeout; `late` receives its result.
+internal func withTimeout<T: Sendable>(
+    _ timeout: TimeInterval,
+    operation: @escaping @Sendable () async throws -> T,
+    late: @escaping @Sendable (Result<T, Error>) async -> () = { _ in }
+) async throws -> T {
+    let result = TimeoutResult<T>()
+    return try await withCheckedThrowingContinuation { continuation in
+        result.continuation = continuation
+        let task = Task {
+            let value: Result<T, Error>
+            do { value = .success(try await operation()) }
+            catch { value = .failure(error) }
+            if result.resume(with: value) == false {
+                await late(value)
+            }
+        }
+        Task {
+            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            if result.resume(with: .failure(GoveeConnectionError.timeout)) {
+                task.cancel()
+            }
+        }
+    }
+}
+
+/// Resumes a continuation once.
+private final class TimeoutResult<T: Sendable>: @unchecked Sendable {
+
+    private let lock = NSLock()
+
+    private var _continuation: CheckedContinuation<T, Error>?
+
+    var continuation: CheckedContinuation<T, Error>? {
+        get { lock.withLock { _continuation } }
+        set { lock.withLock { _continuation = newValue } }
+    }
+
+    /// Returns `false` if already resumed.
+    func resume(with result: Result<T, Error>) -> Bool {
+        let continuation = lock.withLock {
+            let continuation = _continuation
+            _continuation = nil
+            return continuation
+        }
+        guard let continuation else {
+            return false
+        }
+        continuation.resume(with: result)
+        return true
     }
 }
 
