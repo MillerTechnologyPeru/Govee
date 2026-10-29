@@ -112,7 +112,7 @@ final class GoveeConnectionTests: XCTestCase {
         do {
             _ = try await central.connect(to: central.peripheral, model: .h7135, timeout: 0.2)
             XCTFail()
-        } catch GoveeConnectionError.timeout { }
+        } catch GoveeConnectionError.handshakeFailed { }
         XCTAssertFalse(central.isConnected)
     }
 
@@ -134,9 +134,9 @@ final class GoveeConnectionTests: XCTestCase {
     func testConnectTimeout() async throws {
         let central = TestCentral(isAdvertising: false) { frame in [frame] }
         do {
-            _ = try await central.connect(to: central.peripheral, model: .h712C, timeout: 0.2)
+            _ = try await central.connect(to: central.peripheral, model: .h712C, connectTimeout: 0.2)
             XCTFail()
-        } catch GoveeConnectionError.timeout { }
+        } catch GoveeConnectionError.connectionTimeout { }
         XCTAssertTrue(central.writes.isEmpty)
     }
 }
