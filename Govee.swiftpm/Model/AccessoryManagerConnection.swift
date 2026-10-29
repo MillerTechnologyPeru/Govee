@@ -29,6 +29,11 @@ public extension AccessoryManager {
         guard let peripheral = self[peripheral: id] else {
             throw GoveeAppError.unknown(id)
         }
+        // scanning slows down connecting
+        if isScanning {
+            stopScanning()
+            log("Stopped scanning to connect")
+        }
         log("Connecting to \(id)")
         let connection = try await central.connect(to: peripheral, model: id.model)
         connections[id] = connection
