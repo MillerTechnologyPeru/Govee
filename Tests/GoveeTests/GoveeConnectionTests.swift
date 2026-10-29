@@ -115,6 +115,30 @@ final class GoveeConnectionTests: XCTestCase {
         } catch GoveeConnectionError.timeout { }
         XCTAssertFalse(central.isConnected)
     }
+
+    func testDeviceDisconnect() async throws {
+        let central = TestCentral { frame in [frame] }
+        let connection = try await central.connect(to: central.peripheral, model: .h712C)
+        try await connection.send(GoveeQuery.power)
+        // the device closes the connection, as the H712C and H5072 do when idle
+        central.dropConnection()
+        for await _ in connection.events { }
+        let isConnected = await connection.isConnected
+        XCTAssertFalse(isConnected)
+        do {
+            try await connection.send(GoveeQuery.power)
+            XCTFail()
+        } catch GoveeConnectionError.disconnected { }
+    }
+
+    func testConnectTimeout() async throws {
+        let central = TestCentral(isAdvertising: false) { frame in [frame] }
+        do {
+            _ = try await central.connect(to: central.peripheral, model: .h712C, timeout: 0.2)
+            XCTFail()
+        } catch GoveeConnectionError.timeout { }
+        XCTAssertTrue(central.writes.isEmpty)
+    }
 }
 
 // MARK: - Test Central
@@ -145,8 +169,23 @@ private final class TestCentral: CentralManager, @unchecked Sendable {
 
     private var notify: AsyncIndefiniteStream<Data>.Continuation?
 
-    init(device: @escaping @Sendable ([UInt8]) -> [[UInt8]]) {
+    /// Whether `connect(to:)` succeeds; otherwise it never returns, like CoreBluetooth.
+    let isAdvertising: Bool
+
+    init(isAdvertising: Bool = true, device: @escaping @Sendable ([UInt8]) -> [[UInt8]]) {
+        self.isAdvertising = isAdvertising
         self.device = device
+    }
+
+    /// Simulates the device closing the connection.
+    func dropConnection() {
+        let notify = lock.withLock {
+            _isConnected = false
+            let notify = self.notify
+            self.notify = nil
+            return notify
+        }
+        notify?.finish(throwing: CentralError.disconnected)
     }
 
     var writes: [[UInt8]] {
@@ -166,6 +205,10 @@ private final class TestCentral: CentralManager, @unchecked Sendable {
     }
 
     func connect(to peripheral: Peripheral) async throws {
+        guard isAdvertising else {
+            try await Task.sleep(nanoseconds: .max)
+            return
+        }
         lock.withLock { _isConnected = true }
     }
 
