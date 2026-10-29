@@ -90,8 +90,10 @@ private extension NearbyDevicesView {
     
     var list: some View {
         List {
-            ForEach(items) {
-                GoveeAdvertisementRow(advertisement: $0)
+            ForEach(items) { accessory in
+                NavigationLink(destination: DeviceDetailView(accessory: accessory)) {
+                    GoveeAdvertisementRow(advertisement: accessory)
+                }
             }
         }
     }

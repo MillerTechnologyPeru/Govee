@@ -37,6 +37,10 @@ public final class AccessoryManager: ObservableObject {
     @Published
     internal var scanStream: AsyncCentralScan<NativeCentral>?
     
+    /// Open GATT connections.
+    @Published
+    public internal(set) var connections = [GoveeAccessory.ID: GoveeConnection<NativeCentral>]()
+    
     // MARK: - Initialization
     
     public static let shared = AccessoryManager()

@@ -389,4 +389,7 @@ internal extension MockCentral {
         var isScanning: AsyncStream<Bool>.Continuation?
     }
 }
+
+// Required by `GoveeConnection`; storage is an actor.
+extension MockCentral: @unchecked Sendable { }
 #endif
