@@ -33,6 +33,13 @@ public extension AccessoryManager {
         let connection = try await central.connect(to: peripheral, model: id.model)
         connections[id] = connection
         log("Connected to \(id) (\(connection.security))")
+        // events end when the device closes the connection
+        Task { [weak self] in
+            for await event in connection.events {
+                self?.log("\(id) event \(event)")
+            }
+            self?.connectionClosed(id, connection)
+        }
         return connection
     }
 
@@ -59,9 +66,26 @@ public extension AccessoryManager {
             return reply
         }
         catch GoveeConnectionError.disconnected {
-            connections[id] = nil
+            connectionClosed(id, connection)
             throw GoveeConnectionError.disconnected
         }
+        catch GoveeConnectionError.timeout {
+            // the device may have gone away without disconnecting; reconnect next time
+            await disconnect(id)
+            throw GoveeConnectionError.timeout
+        }
+    }
+}
+
+private extension AccessoryManager {
+
+    /// Forgets a connection the device closed.
+    func connectionClosed(_ id: GoveeAccessory.ID, _ connection: GoveeConnection<NativeCentral>) {
+        guard connections[id] === connection else {
+            return
+        }
+        connections[id] = nil
+        log("\(id) closed the connection")
     }
 }
 
