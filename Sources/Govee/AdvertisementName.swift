@@ -5,10 +5,8 @@
 //  Created by Alsey Coleman Miller on 3/13/24.
 //
 
-import Foundation
-
 /// Govee Advertisement Name
-public struct GoveeAdvertisementName: RawRepresentable, Equatable, Hashable, Codable, Sendable {
+public struct GoveeAdvertisementName: RawRepresentable, Equatable, Hashable, Sendable {
     
     public let rawValue: String
     
@@ -29,7 +27,7 @@ public struct GoveeAdvertisementName: RawRepresentable, Equatable, Hashable, Cod
             return nil
         }
         string.removeFirst(model.rawValue.count)
-        string = string.replacingOccurrences(of: "_", with: "")
+        string.removeAll { $0 == "_" }
         guard string.count == 4,
             let macSuffix = UInt16(string, radix: 16) else {
             return nil
@@ -45,7 +43,6 @@ public struct GoveeAdvertisementName: RawRepresentable, Equatable, Hashable, Cod
         self.rawValue = rawValue
         self.model = model
         self.addressSuffix = addressSuffix
-        assert(rawValue.localizedStandardContains(model.rawValue))
         assert(rawValue.hasSuffix(addressSuffix.toHexadecimal()))
     }
 }
@@ -58,3 +55,9 @@ extension GoveeAdvertisementName: CustomStringConvertible {
         rawValue
     }
 }
+
+// MARK: - Codable
+
+#if !hasFeature(Embedded)
+extension GoveeAdvertisementName: Codable { }
+#endif
