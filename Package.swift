@@ -37,6 +37,10 @@ let package = Package(
                     name: "GATT",
                     package: "GATT"
                 ),
+            ],
+            swiftSettings: [
+                // `@_extern(c)` platform hooks for Embedded Swift
+                .enableExperimentalFeature("Extern")
             ]
         ),
         .testTarget(

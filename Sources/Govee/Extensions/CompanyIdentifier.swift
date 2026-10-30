@@ -5,7 +5,6 @@
 //  Created by Alsey Coleman Miller on 3/13/24.
 //
 
-import Foundation
 import Bluetooth
 
 public extension Bluetooth.CompanyIdentifier {
@@ -23,7 +22,7 @@ internal extension Bluetooth.CompanyIdentifier {
     }
 }
 
-internal enum GoveeCompanyIdentifier: UInt16, Sendable, Codable, CaseIterable {
+internal enum GoveeCompanyIdentifier: UInt16, Sendable, CaseIterable {
     
     case thermometer    = 0xEC88
     case v2             = 0x8802
@@ -32,3 +31,9 @@ internal enum GoveeCompanyIdentifier: UInt16, Sendable, Codable, CaseIterable {
     /// Seen on H7173 kettle with newer firmware.
     case v3Alternate    = 0x8843
 }
+
+// MARK: - Codable
+
+#if !hasFeature(Embedded)
+extension GoveeCompanyIdentifier: Codable { }
+#endif

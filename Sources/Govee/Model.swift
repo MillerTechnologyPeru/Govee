@@ -5,10 +5,8 @@
 //  Created by Alsey Coleman Miller on 3/16/23.
 //
 
-import Foundation
-
 /// Govee Model
-public enum GoveeModel: String, Codable, CaseIterable, Sendable {
+public enum GoveeModel: String, CaseIterable, Sendable {
     
     /// Govee Thermometer Hygrometer
     case h5072 = "H5072"
@@ -66,3 +64,9 @@ public enum GoveeModel: String, Codable, CaseIterable, Sendable {
     /// Govee Smart Rice Cooker Pro
     case h7180 = "H7180"
 }
+
+// MARK: - Codable
+
+#if !hasFeature(Embedded)
+extension GoveeModel: Codable { }
+#endif

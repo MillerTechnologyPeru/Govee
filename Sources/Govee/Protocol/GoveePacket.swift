@@ -5,7 +5,9 @@
 //  Created by Alsey Coleman Miller on 10/28/26.
 //
 
+#if canImport(Foundation) && !hasFeature(Embedded)
 import Foundation
+#endif
 
 /// Govee BLE Packet
 ///
@@ -58,12 +60,17 @@ public extension GoveePacket {
     var bytes: [UInt8] {
         [id.rawValue] + payload + [checksum]
     }
+}
+
+#if canImport(Foundation) && !hasFeature(Embedded)
+public extension GoveePacket {
 
     /// Serialized packet data.
     var data: Data {
         Data(bytes)
     }
 }
+#endif
 
 internal extension GoveePacket {
 

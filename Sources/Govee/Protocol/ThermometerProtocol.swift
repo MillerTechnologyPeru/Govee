@@ -5,7 +5,10 @@
 //  Created by Alsey Coleman Miller on 10/28/26.
 //
 
-import Foundation
+#if hasFeature(Embedded)
+// Embedded Swift does not import the concurrency module implicitly.
+import _Concurrency
+#endif
 
 // H5072 thermometer GATT protocol, decrypted from Govee app captures. See Docs/BLE-Protocol.md.
 
@@ -95,7 +98,7 @@ public extension GoveeConnection {
     /// - Parameter timeout: Time allowed for each reply, and between history frames.
     func thermometerHistory(
         minutes: UInt16,
-        timeout: TimeInterval = 5
+        timeout: Double = 5
     ) async throws -> [GoveeAccessory.Thermometer.HistoryReading] {
         try await send(GoveeAccessory.Thermometer.Command.prepareHistory, timeout: timeout)
         let frames = try await download(GoveeAccessory.Thermometer.Command.history(minutes: minutes), timeout: timeout)
