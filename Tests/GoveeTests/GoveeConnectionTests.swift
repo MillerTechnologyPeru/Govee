@@ -300,9 +300,13 @@ private final class TestCentral: CentralManager, @unchecked Sendable {
         _ services: Set<BluetoothUUID>,
         for peripheral: Peripheral
     ) async throws -> [Service<Peripheral, AttributeID>] {
-        self.services.enumerated().map { index, uuid in
-            Service(id: UInt16(index), uuid: uuid, peripheral: peripheral)
+        // A loop, not `enumerated().map`: on Linux (Swift 6.4.1) the closure's thunk crashes
+        // with a null pointer dereference.
+        var result = [Service<Peripheral, AttributeID>]()
+        for index in self.services.indices {
+            result.append(Service(id: UInt16(index), uuid: self.services[index], peripheral: peripheral))
         }
+        return result
     }
 
     func discoverCharacteristics(
