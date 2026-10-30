@@ -5,7 +5,10 @@
 //  Created by Alsey Coleman Miller on 10/28/26.
 //
 
-import Foundation
+#if hasFeature(Embedded)
+// Embedded Swift does not import the concurrency module implicitly.
+import _Concurrency
+#endif
 import Bluetooth
 import GATT
 
@@ -78,30 +81,6 @@ public actor GoveeConnection<Central: CentralManager> where Central: Sendable, C
 
     // MARK: - Methods
 
-    /// Sends a request and waits for the device's reply.
-    @discardableResult
-    public func send<Request: GoveeRequest>(
-        _ request: Request,
-        timeout: TimeInterval = 5
-    ) async throws -> GoveePacket {
-        try await enqueue {
-            try await self.perform(request, timeout: timeout)
-        }
-    }
-
-    /// Sends a request, then collects the decrypted frames the device streams on the history characteristic
-    /// (`…2013`) until it sends an `EE 01` event.
-    ///
-    /// - Parameter timeout: Time allowed for the reply, and between frames.
-    public func download<Request: GoveeRequest>(
-        _ request: Request,
-        timeout: TimeInterval = 5
-    ) async throws -> [[UInt8]] {
-        try await enqueue {
-            try await self.performDownload(request, timeout: timeout)
-        }
-    }
-
     /// Closes the connection.
     public func disconnect() async {
         guard isConnected else {
@@ -120,11 +99,41 @@ public actor GoveeConnection<Central: CentralManager> where Central: Sendable, C
     }
 }
 
+// MARK: - Requests
+
+// Generic methods live in an extension: Embedded Swift does not allow them in a class body.
+public extension GoveeConnection {
+
+    /// Sends a request and waits for the device's reply.
+    @discardableResult
+    func send<Request: GoveeRequest>(
+        _ request: Request,
+        timeout: Double = 5
+    ) async throws -> GoveePacket {
+        try await enqueue {
+            try await self.perform(request, timeout: timeout)
+        }
+    }
+
+    /// Sends a request, then collects the decrypted frames the device streams on the history characteristic
+    /// (`…2013`) until it sends an `EE 01` event.
+    ///
+    /// - Parameter timeout: Time allowed for the reply, and between frames.
+    func download<Request: GoveeRequest>(
+        _ request: Request,
+        timeout: Double = 5
+    ) async throws -> [[UInt8]] {
+        try await enqueue {
+            try await self.performDownload(request, timeout: timeout)
+        }
+    }
+}
+
 // MARK: - Setup
 
 internal extension GoveeConnection {
 
-    func setup(timeout: TimeInterval) async throws {
+    func setup(timeout: Double) async throws {
         // discover
         let services = try await central.discoverServices([.goveeControlService, .goveeThermostat], for: peripheral)
         for service in services {
@@ -200,13 +209,13 @@ private extension GoveeConnection {
             _ = await previous?.value
             return try await operation()
         }
-        queue = Task { _ = await task.result }
+        queue = Task { _ = try? await task.value }
         return try await task.value
     }
 
     func performDownload<Request: GoveeRequest>(
         _ request: Request,
-        timeout: TimeInterval
+        timeout: Double
     ) async throws -> [[UInt8]] {
         requestCount += 1
         let id = requestCount
@@ -235,11 +244,11 @@ private extension GoveeConnection {
     }
 
     /// Fails the download if no frame arrives within the timeout.
-    func watchDownload(_ id: UInt64, timeout: TimeInterval) async {
+    func watchDownload(_ id: UInt64, timeout: Double) async {
         var count = -1
         while let download, download.id == id, download.result == nil, download.frames.count != count {
             count = download.frames.count
-            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            await sleep(seconds: timeout)
         }
         guard let download, download.id == id else {
             return
@@ -267,6 +276,20 @@ private extension GoveeConnection {
     func subscribe(_ characteristic: Characteristic) async throws {
         let stream = try await central.notify(for: characteristic)
         notifications.append(stream)
+        #if hasFeature(Embedded)
+        // Weak references are unavailable in Embedded Swift; the stream ends on disconnect, releasing the connection.
+        // Capturing `self` strongly isolates the task to this actor.
+        let task = Task {
+            do {
+                for try await data in stream {
+                    self.receive(Array(data), from: characteristic.uuid)
+                }
+            }
+            catch { }
+            // the stream ends when the device disconnects
+            self.connectionLost()
+        }
+        #else
         let task = Task { [weak self] in
             do {
                 for try await data in stream {
@@ -277,6 +300,7 @@ private extension GoveeConnection {
             // the stream ends when the device disconnects
             await self?.connectionLost()
         }
+        #endif
         tasks.append(task)
     }
 
@@ -298,7 +322,7 @@ private extension GoveeConnection {
 
     func perform<Request: GoveeRequest>(
         _ request: Request,
-        timeout: TimeInterval
+        timeout: Double
     ) async throws -> GoveePacket {
         guard isConnected else {
             throw GoveeConnectionError.disconnected
@@ -324,7 +348,7 @@ private extension GoveeConnection {
                 }
             }
             Task {
-                try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                await sleep(seconds: timeout)
                 self.fail(id, GoveeConnectionError.timeout)
             }
         }
@@ -390,8 +414,8 @@ public extension CentralManager where Self: Sendable, AttributeID: Sendable {
         to peripheral: Peripheral,
         model: GoveeModel,
         security: GoveeSecurity? = nil,
-        connectTimeout: TimeInterval = 15,
-        timeout: TimeInterval = 5
+        connectTimeout: Double = 15,
+        timeout: Double = 5
     ) async throws -> GoveeConnection<Self> {
         // CoreBluetooth waits forever for a device that is not advertising
         do {
@@ -429,24 +453,23 @@ public extension CentralManager where Self: Sendable, AttributeID: Sendable {
 ///
 /// The operation keeps running after a timeout; `late` receives its result.
 internal func withTimeout<T: Sendable>(
-    _ timeout: TimeInterval,
+    _ timeout: Double,
     operation: @escaping @Sendable () async throws -> T,
     late: @escaping @Sendable (Result<T, Error>) async -> () = { _ in }
 ) async throws -> T {
-    let result = TimeoutResult<T>()
-    return try await withCheckedThrowingContinuation { continuation in
-        result.continuation = continuation
+    try await withCheckedThrowingContinuation { continuation in
+        let result = TimeoutResult(continuation)
         let task = Task {
             let value: Result<T, Error>
             do { value = .success(try await operation()) }
             catch { value = .failure(error) }
-            if result.resume(with: value) == false {
+            if await result.resume(with: value) == false {
                 await late(value)
             }
         }
         Task {
-            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-            if result.resume(with: .failure(GoveeConnectionError.timeout)) {
+            await sleep(seconds: timeout)
+            if await result.resume(with: .failure(GoveeConnectionError.timeout)) {
                 task.cancel()
             }
         }
@@ -454,27 +477,20 @@ internal func withTimeout<T: Sendable>(
 }
 
 /// Resumes a continuation once.
-private final class TimeoutResult<T: Sendable>: @unchecked Sendable {
+private actor TimeoutResult<T: Sendable> {
 
-    private let lock = NSLock()
+    private var continuation: CheckedContinuation<T, Error>?
 
-    private var _continuation: CheckedContinuation<T, Error>?
-
-    var continuation: CheckedContinuation<T, Error>? {
-        get { lock.withLock { _continuation } }
-        set { lock.withLock { _continuation = newValue } }
+    init(_ continuation: CheckedContinuation<T, Error>) {
+        self.continuation = continuation
     }
 
     /// Returns `false` if already resumed.
     func resume(with result: Result<T, Error>) -> Bool {
-        let continuation = lock.withLock {
-            let continuation = _continuation
-            _continuation = nil
-            return continuation
-        }
         guard let continuation else {
             return false
         }
+        self.continuation = nil
         continuation.resume(with: result)
         return true
     }
