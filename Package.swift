@@ -18,11 +18,11 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/PureSwift/Bluetooth.git",
-            from: "8.0.0"
+            from: "8.2.0"
         ),
         .package(
             url: "https://github.com/PureSwift/GATT.git",
-            from: "4.0.0"
+            from: "4.1.0"
         ),
     ],
     targets: [
