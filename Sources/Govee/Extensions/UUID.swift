@@ -5,15 +5,19 @@
 //  Created by Alsey Coleman Miller on 3/15/23.
 //
 
+#if canImport(Foundation) && !hasFeature(Embedded)
 import Foundation
+#endif
 import Bluetooth
 
+#if canImport(Foundation) && !hasFeature(Embedded)
 public extension UUID {
     
     static var goveeThermostat: UUID {
         UUID(uuidString: "494E5445-4C4C-495F-524F-434B535F4857")!
     }
 }
+#endif
 
 public extension BluetoothUUID {
     
@@ -24,7 +28,7 @@ public extension BluetoothUUID {
     
     /// Govee Thermostat Service
     static var goveeThermostat: BluetoothUUID {
-        BluetoothUUID(uuid: .goveeThermostat)
+        BluetoothUUID(rawValue: "494E5445-4C4C-495F-524F-434B535F4857")!
     }
 
     /// Govee Control Service
@@ -62,11 +66,11 @@ private extension BluetoothUUID {
 
     /// `00010203-0405-0607-0809-0A0B0C0D____`
     static func goveeControl(_ suffix: UInt16) -> BluetoothUUID {
-        BluetoothUUID(uuid: UUID(uuidString: "00010203-0405-0607-0809-0A0B0C0D" + suffix.toHexadecimal())!)
+        BluetoothUUID(rawValue: "00010203-0405-0607-0809-0A0B0C0D" + suffix.toHexadecimal())!
     }
 
     /// `494E5445-4C4C-495F-524F-434B535F____`
     static func goveeIntelliRocks(_ suffix: UInt16) -> BluetoothUUID {
-        BluetoothUUID(uuid: UUID(uuidString: "494E5445-4C4C-495F-524F-434B535F" + suffix.toHexadecimal())!)
+        BluetoothUUID(rawValue: "494E5445-4C4C-495F-524F-434B535F" + suffix.toHexadecimal())!
     }
 }
