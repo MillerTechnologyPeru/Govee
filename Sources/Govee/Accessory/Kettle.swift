@@ -5,7 +5,6 @@
 //  Created by Alsey Coleman Miller on 3/13/24.
 //
 
-import Foundation
 import Bluetooth
 import GATT
 
@@ -112,7 +111,7 @@ internal extension GoveeAccessory.Kettle.ManufacturerData {
 
 // MARK: - Supporting Types
 
-public enum KettleHeatingState: UInt8, Codable, Sendable, CaseIterable {
+public enum KettleHeatingState: UInt8, Sendable, CaseIterable {
     
     case idle = 0x00
     
@@ -122,3 +121,9 @@ public enum KettleHeatingState: UInt8, Codable, Sendable, CaseIterable {
     
     case finishedBoiling = 0x04
 }
+
+// MARK: - Codable
+
+#if !hasFeature(Embedded)
+extension KettleHeatingState: Codable { }
+#endif
