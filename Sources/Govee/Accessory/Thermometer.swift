@@ -5,7 +5,6 @@
 //  Created by Alsey Coleman Miller on 3/15/23.
 //
 
-import Foundation
 import Bluetooth
 import GATT
 
@@ -140,7 +139,9 @@ internal extension GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperatur
     }
 }
 
+#if !hasFeature(Embedded)
 extension GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperature: Codable { }
+#endif
 
 extension GoveeAccessory.Thermometer.ManufacturerData.EncodedTemperature: RawRepresentable {
     
