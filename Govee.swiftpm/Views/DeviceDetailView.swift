@@ -5,7 +5,11 @@
 //  Created by Alsey Coleman Miller on 10/28/26.
 //
 
+#if canImport(FoundationEmbedded)
+import FoundationEmbedded
+#else
 import Foundation
+#endif
 import SwiftUI
 import Govee
 
@@ -106,7 +110,7 @@ struct DeviceAction {
                 error.wrappedValue = nil
             }
             catch {
-                self.error.wrappedValue = String(describing: error)
+                self.error.wrappedValue = errorDescription(error)
             }
         }
     }
