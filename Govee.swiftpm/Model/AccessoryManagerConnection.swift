@@ -5,11 +5,19 @@
 //  Created by Alsey Coleman Miller on 10/28/26.
 //
 
+#if canImport(FoundationEmbedded)
+import FoundationEmbedded
+#else
 import Foundation
+#endif
 import Bluetooth
 import GATT
 import DarwinGATT
 import Govee
+#if hasFeature(Embedded)
+// MainActor and Task.sleep come from SwiftUI under Embedded Swift.
+import SwiftUI
+#endif
 
 // MARK: - Connection
 
@@ -39,11 +47,11 @@ public extension AccessoryManager {
         connections[id] = connection
         log("Connected to \(id) (\(connection.security))")
         // events end when the device closes the connection
-        Task { [weak self] in
+        Task {
             for await event in connection.events {
-                self?.log("\(id) event \(event)")
+                self.log("\(id) event \(event)")
             }
-            self?.connectionClosed(id, connection)
+            self.connectionClosed(id, connection)
         }
         return connection
     }
