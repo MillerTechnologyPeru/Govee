@@ -1,14 +1,16 @@
 # Builds Govee apps for iOS 9 / armv7 (iPhone 4S) with Embedded Swift.
 #
-#   make                       build the app in APP (default Scanner)
+#   make                       build the app in APP (default GoveeApp)
 #   make install               copy it to a jailbroken device over SSH
+#   make ipa                   package it as build/$(APP).ipa
 #
 # Uses SwiftUI-iOS9 (https://github.com/colemancda/SwiftUI-iOS9) for the UI,
 # its CoreBluetooth central (DarwinGATT), its iOS 9.3 SDK (`make sdk` there)
-# and its concurrency runtime fixes, and the Bluetooth and GATT versions
-# SwiftPM resolves for the Govee package.
+# and its concurrency runtime fixes, the Bluetooth and GATT versions SwiftPM
+# resolves for the Govee package, and swift-embedded-foundation for the
+# Foundation types the app uses.
 
-APP      ?= Scanner
+APP      ?= GoveeApp
 BUNDLE   := build/$(APP).app
 MIN_IOS  := 9.0
 ARCH     := armv7
@@ -25,6 +27,9 @@ CC     := xcrun clang
 SWIFTUI_BACKEND := $(SWIFTUI_IOS9)/Sources/CSwiftUIBackend
 GATT_BACKEND    := $(SWIFTUI_IOS9)/Sources/CDarwinGATT
 RUNTIME := build/runtime/libswift_Concurrency.a
+
+SEF_VERSION := 0.2.1
+SEF         := build/deps/swift-embedded-foundation
 
 # See SwiftUI-iOS9's Makefile for why everything is ARM, r9 is reserved and
 # the executor and runtime are compiled for the bare-metal target.
@@ -47,8 +52,23 @@ SWIFTUI_SRCS   = $(wildcard $(SWIFTUI_IOS9)/Sources/SwiftUI/*.swift)
 DARWINGATT_SRCS = $(wildcard $(SWIFTUI_IOS9)/Sources/DarwinGATT/*.swift)
 APP_SRCS       = $(wildcard $(APP)/*.swift)
 
+# The Govee app shares its views and model with the Swift Playgrounds app,
+# except App Intents and mocks, which don't apply.
+SHARED := ../Govee.swiftpm
+GOVEE_SHARED_SRCS = $(SHARED)/App.swift \
+                    $(wildcard $(SHARED)/Views/*.swift) \
+                    $(wildcard $(SHARED)/Model/*.swift) $(wildcard $(SHARED)/Extensions/*.swift)
+ifeq ($(APP),GoveeApp)
+APP_SRCS += $(GOVEE_SHARED_SRCS)
+ICON := $(SHARED)/Assets.xcassets/AppIcon.appiconset/GoveeAppIcon@2x.png
+endif
+
+# iOS 9 doesn't read asset catalogs: an app with an ICON gets PNGs in its
+# bundle at the iPhone @2x sizes, listed under CFBundleIcons in its Info.plist.
+ICONS = $(if $(ICON),$(foreach size,29x29 40x40 60x60,$(BUNDLE)/AppIcon$(size)@2x.png))
+
 OBJS := build/obj/$(APP).o build/obj/DarwinGATT.o build/obj/Govee.o build/obj/GATT.o \
-        build/obj/Bluetooth.o build/obj/SwiftUI.o \
+        build/obj/Bluetooth.o build/obj/SwiftUI.o build/obj/FoundationEmbedded.o \
         build/obj/SwiftUIBackend.o build/obj/DarwinGATTBackend.o build/obj/Executor.o
 
 # iOS 9's Bluetooth daemon only treats an app as foreground, and gives it
@@ -62,7 +82,7 @@ BUNDLE_ID      = $(shell plutil -extract CFBundleIdentifier raw $(APP)/Info.plis
 SSH_CONF ?= /Volumes/4TB/Downloads/IPA/4s-ssh.conf
 SSH_HOST ?= 4s
 
-.PHONY: all install resolve clean distclean
+.PHONY: all install ipa resolve clean distclean
 .DEFAULT_GOAL := all
 
 all: $(BUNDLE)/$(APP)
@@ -88,6 +108,15 @@ build/obj/Govee.o: build/obj/GATT.o $(GOVEE_SRCS)
 	$(SWIFTC) $(SWIFTFLAGS) -enable-experimental-feature Extern -module-name Govee -package-name govee \
 	  -emit-module -emit-module-path build/modules/Govee.swiftmodule -c $(GOVEE_SRCS) -o $@
 
+$(SEF)/Package.swift:
+	git clone --quiet --depth 1 --branch $(SEF_VERSION) https://github.com/PureSwift/swift-embedded-foundation.git $(SEF)
+
+# Without the FloatingPointParsingShims trait, which Swift 6.4 doesn't need.
+build/obj/FoundationEmbedded.o: $(SEF)/Package.swift
+	@mkdir -p build/obj build/modules
+	$(SWIFTC) $(SWIFTFLAGS) -module-name FoundationEmbedded -package-name swift_embedded_foundation \
+	  -emit-module -emit-module-path build/modules/FoundationEmbedded.swiftmodule -c $(SEF)/Sources/FoundationEmbedded/*.swift -o $@
+
 build/obj/SwiftUI.o: $(SWIFTUI_SRCS) $(SWIFTUI_BACKEND)/include/SwiftUIBackend.h
 	@mkdir -p build/obj build/modules
 	$(SWIFTC) $(SWIFTFLAGS) -module-name SwiftUI \
@@ -97,8 +126,9 @@ build/obj/DarwinGATT.o: build/obj/GATT.o $(DARWINGATT_SRCS) $(GATT_BACKEND)/incl
 	$(SWIFTC) $(SWIFTFLAGS) -module-name DarwinGATT \
 	  -emit-module -emit-module-path build/modules/DarwinGATT.swiftmodule -c $(DARWINGATT_SRCS) -o $@
 
-build/obj/$(APP).o: $(APP_SRCS) build/obj/DarwinGATT.o build/obj/Govee.o build/obj/SwiftUI.o
-	$(SWIFTC) $(SWIFTFLAGS) -module-name $(APP) -c $(APP_SRCS) -o $@
+build/obj/$(APP).o: $(APP_SRCS) build/obj/DarwinGATT.o build/obj/Govee.o build/obj/SwiftUI.o build/obj/FoundationEmbedded.o
+	$(SWIFTC) $(SWIFTFLAGS) -enable-experimental-feature Extern -Xfrontend -import-module -Xfrontend _Concurrency \
+	  -module-name $(APP) -c $(APP_SRCS) -o $@
 
 build/obj/SwiftUIBackend.o: $(SWIFTUI_BACKEND)/Backend.m $(SWIFTUI_BACKEND)/include/SwiftUIBackend.h
 	@mkdir -p build/obj
@@ -117,7 +147,12 @@ $(RUNTIME): $(SWIFTUI_IOS9)/Scripts/build-concurrency-runtime.sh
 
 # The linker warns "no platform load command found" for the Swift objects
 # (bare-metal target) and assumes iOS, which is what we want.
-$(BUNDLE)/$(APP): $(OBJS) $(RUNTIME) $(APP)/Info.plist
+$(BUNDLE)/AppIcon%@2x.png: $(ICON)
+	@mkdir -p $(BUNDLE)
+	pixels=$$(( 2 * $(firstword $(subst x, ,$*)) )); sips -z $$pixels $$pixels $< --out $@ > /dev/null
+
+# Icons are made first, since the signature covers every file in the bundle.
+$(BUNDLE)/$(APP): $(OBJS) $(RUNTIME) $(APP)/Info.plist $(ICONS)
 	@mkdir -p $(BUNDLE)
 	$(CC) $(LDFLAGS) $(OBJS) -o $@
 	plutil -convert binary1 -o $(BUNDLE)/Info.plist $(APP)/Info.plist
@@ -128,13 +163,23 @@ $(BUNDLE)/$(APP): $(OBJS) $(RUNTIME) $(APP)/Info.plist
 
 # Copies the app into /Applications (runs without AppSync on a jailbroken
 # device) and refreshes the home screen.
+# An .ipa for installing with other tools, such as AppSync with Filza or ideviceinstaller.
+ipa: build/$(APP).ipa
+
+build/$(APP).ipa: $(BUNDLE)/$(APP)
+	rm -rf build/ipa $@
+	mkdir -p build/ipa/Payload
+	cp -R $(BUNDLE) build/ipa/Payload/
+	cd build/ipa && COPYFILE_DISABLE=1 zip -qry ../$(APP).ipa Payload
+	rm -rf build/ipa
+
 install: $(BUNDLE)/$(APP)
 	COPYFILE_DISABLE=1 tar --no-xattrs --no-mac-metadata -C build -cf - $(APP).app | \
 	  ssh -F $(SSH_CONF) $(SSH_HOST) 'cd / && rm -rf /Applications/$(APP).app && tar -C /Applications -xf - && chown -R root:wheel /Applications/$(APP).app && su mobile -c uicache'
 
-# Keeps the rebuilt runtime; `make distclean` removes it too.
+# Keeps the rebuilt runtime and downloaded dependencies; `make distclean` removes them too.
 clean:
-	find build -mindepth 1 -maxdepth 1 ! -name runtime -exec rm -rf {} +
+	find build -mindepth 1 -maxdepth 1 ! -name runtime ! -name deps -exec rm -rf {} +
 
 distclean:
 	rm -rf build
