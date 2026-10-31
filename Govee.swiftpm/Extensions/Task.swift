@@ -5,6 +5,11 @@
 //  Created by Alsey Coleman Miller on 3/25/23.
 //
 
+#if hasFeature(Embedded)
+// MainActor and Task.sleep come from SwiftUI under Embedded Swift.
+import SwiftUI
+#endif
+
 public extension Task where Success == Never, Failure == Never {
     
     static func sleep(timeInterval: Double) async throws {
