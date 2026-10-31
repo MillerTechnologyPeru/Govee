@@ -122,6 +122,24 @@ public enum KettleHeatingState: UInt8, Sendable, CaseIterable {
     case finishedBoiling = 0x04
 }
 
+// MARK: - CustomStringConvertible
+
+extension KettleHeatingState: CustomStringConvertible {
+
+    public var description: String {
+        switch self {
+        case .idle:
+            return "idle"
+        case .heating:
+            return "heating"
+        case .keepingWarm:
+            return "keepingWarm"
+        case .finishedBoiling:
+            return "finishedBoiling"
+        }
+    }
+}
+
 // MARK: - Codable
 
 #if !hasFeature(Embedded)

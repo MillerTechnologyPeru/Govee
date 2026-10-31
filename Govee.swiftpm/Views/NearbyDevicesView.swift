@@ -5,8 +5,13 @@
 //  Created by Alsey Coleman Miller on 3/25/23.
 //
 
+#if canImport(FoundationEmbedded)
+import FoundationEmbedded
+#else
 import Foundation
+#endif
 import SwiftUI
+import DarwinGATT
 import Govee
 
 struct NearbyDevicesView: View {
@@ -111,7 +116,7 @@ private extension NearbyDevicesView {
                 do {
                     try await store.scan()
                 }
-                catch { store.log("⚠️ Unable to scan. \(error.localizedDescription)") }
+                catch { store.log("⚠️ Unable to scan. \(errorDescription(error))") }
             }
         }
     }

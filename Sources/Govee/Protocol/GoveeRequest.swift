@@ -151,6 +151,18 @@ public enum GoveeSecurity: Equatable, Hashable, Sendable {
     case encrypted
 }
 
+extension GoveeSecurity: CustomStringConvertible {
+
+    public var description: String {
+        switch self {
+        case .plaintext:
+            return "plaintext"
+        case .encrypted:
+            return "encrypted"
+        }
+    }
+}
+
 public extension GoveeModel {
 
     /// Security observed for this model's GATT connection.
