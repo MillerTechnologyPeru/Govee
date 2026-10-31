@@ -5,9 +5,15 @@
 //  Created by Alsey Coleman Miller on 3/13/24.
 //
 
+#if canImport(FoundationEmbedded)
+import FoundationEmbedded
+#else
 import Foundation
+#endif
 import SwiftUI
+#if canImport(CoreBluetooth)
 import CoreBluetooth
+#endif
 import Bluetooth
 import GATT
 import DarwinGATT
@@ -46,7 +52,8 @@ public final class AccessoryManager: ObservableObject {
     public static let shared = AccessoryManager()
     
     private init() {
-        central.log = { [unowned self] in self.log("📲 Central: " + $0) }
+        // The manager is a singleton, so capturing it strongly is fine.
+        central.log = { self.log("📲 Central: " + $0) }
         observeBluetoothState()
     }
 }
