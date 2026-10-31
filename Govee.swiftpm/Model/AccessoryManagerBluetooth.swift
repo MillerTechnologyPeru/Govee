@@ -5,11 +5,19 @@
 //  Created by Alsey Coleman Miller on 3/13/24.
 //
 
+#if canImport(FoundationEmbedded)
+import FoundationEmbedded
+#else
 import Foundation
+#endif
 import Bluetooth
 import GATT
 import DarwinGATT
 import Govee
+#if hasFeature(Embedded)
+// MainActor and Task.sleep come from SwiftUI under Embedded Swift.
+import SwiftUI
+#endif
 
 public extension AccessoryManager {
     
@@ -35,7 +43,7 @@ public extension AccessoryManager {
             filterDuplicates: filterDuplicates
         )
         self.scanStream = scanStream
-        let task = Task { [unowned self] in
+        let task = Task {
             for try await scanData in scanStream {
                 guard await found(scanData) else { continue }
             }
@@ -47,7 +55,7 @@ public extension AccessoryManager {
             try await task.value // throw errors
         } else {
             // error not thrown
-            Task { [unowned self] in
+            Task {
                 do { try await task.value }
                 catch is CancellationError { }
                 catch {
@@ -66,9 +74,9 @@ public extension AccessoryManager {
 internal extension AccessoryManager {
     
     func observeBluetoothState() {
-        // observe state
-        Task { [weak self] in
-            while let self = self {
+        // observe state; the manager is a singleton, so this runs as long as the app
+        Task {
+            while true {
                 let newState = await self.central.state
                 let oldValue = self.state
                 if newState != oldValue {
@@ -92,11 +100,9 @@ internal extension AccessoryManager {
     func found(_ scanData: ScanData<NativeCentral.Peripheral, NativeCentral.Advertisement>) async -> Bool {
         
         // aggregate scan data
-        assert(Thread.isMainThread)
         let oldCacheValue = scanResults[scanData.peripheral]
         // cache discovered peripheral in background
         let cache = await Task.detached {
-            assert(Thread.isMainThread == false)
             var cache = oldCacheValue ?? ScanDataCache(scanData: scanData)
             cache += scanData
             #if !targetEnvironment(simulator)
@@ -107,7 +113,6 @@ internal extension AccessoryManager {
             return cache
         }.value
         scanResults[scanData.peripheral] = cache
-        assert(Thread.isMainThread)
         
         guard let advertisement = GoveeAccessory(cache) else {
             return false
