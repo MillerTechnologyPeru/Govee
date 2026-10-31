@@ -5,11 +5,21 @@
 //  Created by Alsey Coleman Miller on 3/25/23.
 //
 
+#if canImport(FoundationEmbedded)
+import FoundationEmbedded
+#else
 import Foundation
+#endif
+#if canImport(CoreBluetooth)
 import CoreBluetooth
+#endif
 import Bluetooth
 import GATT
 import DarwinGATT
+#if hasFeature(Embedded)
+// MainActor and Task.sleep come from SwiftUI under Embedded Swift.
+import SwiftUI
+#endif
 
 #if targetEnvironment(simulator)
 
@@ -61,7 +71,7 @@ public extension NativeCentral {
             
             // inform user after 3 seconds
             if powerOnWait == warning {
-                NSLog("Waiting for CoreBluetooth to be ready, please turn on Bluetooth")
+                print("Waiting for CoreBluetooth to be ready, please turn on Bluetooth")
             }
             
             try await Task.sleep(nanoseconds: 1_000_000_000)
