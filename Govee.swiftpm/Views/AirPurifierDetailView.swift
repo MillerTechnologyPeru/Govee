@@ -5,7 +5,11 @@
 //  Created by Alsey Coleman Miller on 10/28/26.
 //
 
+#if canImport(FoundationEmbedded)
+import FoundationEmbedded
+#else
 import Foundation
+#endif
 import SwiftUI
 import Govee
 
@@ -73,6 +77,8 @@ struct AirPurifierDetailView: View {
                             send(.nightLightBrightness(value)) { $0.nightLightBrightness = value }
                         }
                     }
+                    // iOS 9 has no color picker.
+                    #if canImport(UIKit)
                     ColorPicker("Color", selection: $color, supportsOpacity: false)
                     Button("Apply Color") {
                         let rgb = color.rgb
@@ -80,6 +86,7 @@ struct AirPurifierDetailView: View {
                             $0.nightLightColor = rgb
                         }
                     }
+                    #endif
                 }
                 Section("Display") {
                     Toggle("Always On", isOn: Binding(
@@ -169,10 +176,12 @@ extension Color {
         self.init(red: Double(rgb.red) / 255, green: Double(rgb.green) / 255, blue: Double(rgb.blue) / 255)
     }
 
+    #if canImport(UIKit)
     var rgb: (red: UInt8, green: UInt8, blue: UInt8) {
         var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
         UIColor(self).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
         func byte(_ value: CGFloat) -> UInt8 { UInt8(max(0, min(255, (value * 255).rounded()))) }
         return (byte(red), byte(green), byte(blue))
     }
+    #endif
 }
