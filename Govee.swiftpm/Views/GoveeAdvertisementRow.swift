@@ -5,7 +5,11 @@
 //  Created by Alsey Coleman Miller on 3/25/23.
 //
 
+#if canImport(FoundationEmbedded)
+import FoundationEmbedded
+#else
 import Foundation
+#endif
 import SwiftUI
 import Govee
 
@@ -70,8 +74,13 @@ private extension GoveeAdvertisementRow.Thermometer {
         format(advertisement.humidity)
     }
     
+    /// Two decimals, like `%.2f`, without Foundation.
     func format(_ float: Float) -> String {
-        String(format: "%.2f", float)
+        let hundredths = Int((float * 100).rounded())
+        let sign = hundredths < 0 ? "-" : ""
+        let value = abs(hundredths)
+        let fraction = value % 100
+        return "\(sign)\(value / 100).\(fraction < 10 ? "0" : "")\(fraction)"
     }
 }
 
